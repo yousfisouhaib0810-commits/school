@@ -1,0 +1,53 @@
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Plan } from "@school/shared";
+import { apiClient } from "@/lib/api";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner"; // Assuming sonner is used for toast
+
+interface PaymentButtonProps {
+  plan: Plan;
+  label: string;
+}
+
+export function PaymentButton({ plan, label }: PaymentButtonProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handlePayment = async () => {
+    setIsLoading(true);
+    try {
+      const response = await apiClient<{ checkoutUrl: string }>("/api/payments/checkout", {
+        method: "POST",
+        body: JSON.stringify({
+          plan,
+          successUrl: `${window.location.origin}/billing?success=true`,
+          cancelUrl: `${window.location.origin}/billing?canceled=true`,
+        }),
+        parse: (raw: unknown) => raw as { checkoutUrl: string },
+      });
+
+      if (response.error) {
+        toast.error(response.error);
+        return;
+      }
+
+      if (response.data?.checkoutUrl) {
+         // Redirect to Chargily Checkout URL
+         window.location.href = response.data.checkoutUrl;
+      }
+    } catch {
+      toast.error("Failed to initiate payment");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Button onClick={handlePayment} disabled={isLoading} className="w-full">
+      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      {label}
+    </Button>
+  );
+}
