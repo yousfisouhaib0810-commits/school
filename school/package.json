@@ -9,6 +9,7 @@
     "db:seed": "turbo run db:seed",
     "build": "turbo build",
     "type-check": "turbo type-check",
+    "test": "turbo test",
     "lint": "turbo lint",
     "docker:up": "docker compose -f docker/docker-compose.yml up -d",
     "docker:down": "docker compose -f docker/docker-compose.yml down"

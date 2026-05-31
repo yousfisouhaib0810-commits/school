@@ -7,7 +7,8 @@
     "build": "tsc",
     "start": "pnpm --filter @school/database db:deploy && node dist/server.js",
     "type-check": "tsc --noEmit",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.0",
