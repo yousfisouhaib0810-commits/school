@@ -1,18 +1,21 @@
 const TOKEN_KEY = "school_access_token";
 const TENANT_SUBDOMAIN_KEY = "school_tenant_subdomain";
+let inMemoryAccessToken: string | null = null;
 
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
-  return sessionStorage.getItem(TOKEN_KEY);
+  return inMemoryAccessToken;
 }
 
 export function setAccessToken(token: string): void {
   if (typeof window === "undefined") return;
-  sessionStorage.setItem(TOKEN_KEY, token);
+  inMemoryAccessToken = token;
+  sessionStorage.removeItem(TOKEN_KEY);
 }
 
 export function clearAccessToken(): void {
   if (typeof window === "undefined") return;
+  inMemoryAccessToken = null;
   sessionStorage.removeItem(TOKEN_KEY);
 }
 

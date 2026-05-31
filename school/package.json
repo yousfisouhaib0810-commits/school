@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "db:push": "turbo run db:push",
+    "db:deploy": "pnpm --filter @school/database db:deploy",
     "db:seed": "turbo run db:seed",
     "build": "turbo build",
     "type-check": "turbo type-check",

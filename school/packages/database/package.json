@@ -8,11 +8,12 @@
   "scripts": {
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
+    "db:deploy": "prisma db push && tsx src/apply-rls.ts",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "generate": "prisma generate",
     "db:seed": "tsx src/seed.ts",
-    "db:rls": "psql $DATABASE_URL -f prisma/rls.sql",
+    "db:rls": "tsx src/apply-rls.ts",
     "build": "prisma generate && tsc",
     "type-check": "prisma generate && tsc --noEmit",
     "lint": "eslint src/"

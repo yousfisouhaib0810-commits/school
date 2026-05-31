@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "tsx watch --env-file=.env src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "pnpm --filter @school/database db:deploy && node dist/server.js",
     "type-check": "tsc --noEmit",
     "lint": "eslint src/"
   },

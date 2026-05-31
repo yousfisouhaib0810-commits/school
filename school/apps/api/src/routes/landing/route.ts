@@ -6,7 +6,7 @@ export const landingRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get("/", async (request, reply) => {
     try {
       const page = await fastify.prisma.landingPage.findFirst({
-        where: { tenantId: request.tenantId, published: true },
+        where: { tenantId: request.tenantId, published: true, deletedAt: null },
       });
 
       if (!page) {
@@ -33,7 +33,7 @@ export const landingRoutes: FastifyPluginAsync = async (fastify) => {
 
       try {
         const existing = await fastify.prisma.landingPage.findFirst({
-          where: { tenantId: request.tenantId },
+          where: { tenantId: request.tenantId, deletedAt: null },
         });
 
         // Ensure Prisma compatibility representing blocks as a JSON-serializable array
@@ -73,7 +73,7 @@ export const landingRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const page = await fastify.prisma.landingPage.findFirst({
-          where: { tenantId: request.tenantId },
+          where: { tenantId: request.tenantId, deletedAt: null },
         });
 
         return { data: page || { blocks: [], published: false } };

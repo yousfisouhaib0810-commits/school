@@ -15,7 +15,17 @@ const stageRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post("/", async (request, reply) => {
     const data = stageSchema.parse(request.body);
-    const count = await fastify.prisma.stage.count({ where: { subjectId: data.subjectId, tenantId: request.tenantId } });
+    const subject = await fastify.prisma.subject.findFirst({
+      where: { id: data.subjectId, tenantId: request.tenantId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!subject) {
+      return reply.status(404).send({ error: "Subject not found" });
+    }
+
+    const count = await fastify.prisma.stage.count({
+      where: { subjectId: data.subjectId, tenantId: request.tenantId, deletedAt: null },
+    });
     
     const stage = await fastify.prisma.stage.create({
       data: {
@@ -27,38 +37,48 @@ const stageRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.status(201).send(stage);
   });
 
-  fastify.patch("/:id", async (request) => {
-    const { id } = paramsSchema.parse(request.params);
-    const data = stageUpdateSchema.parse(request.body);
-    
-    await fastify.prisma.stage.updateMany({
-      where: { id, tenantId: request.tenantId },
-      data,
-    });
-    return fastify.prisma.stage.findFirst({
-      where: { id, tenantId: request.tenantId }
-    });
-  });
-
-  fastify.delete("/:id", async (request) => {
-    const { id } = paramsSchema.parse(request.params);
-    await fastify.prisma.stage.deleteMany({ where: { id, tenantId: request.tenantId } });
-    return { success: true };
-  });
-
   fastify.patch("/reorder", async (request) => {
     const items = reorderSchema.parse(request.body);
-    
+
     await fastify.prisma.$transaction(
       items.map((item) =>
         fastify.prisma.stage.updateMany({
-          where: { id: item.id, tenantId: request.tenantId },
+          where: { id: item.id, tenantId: request.tenantId, deletedAt: null },
           data: { sortOrder: item.sortOrder },
         })
       )
     );
     return { success: true };
   });
+
+  fastify.patch("/:id", async (request) => {
+    const { id } = paramsSchema.parse(request.params);
+    const data = stageUpdateSchema.parse(request.body);
+    
+    await fastify.prisma.stage.updateMany({
+      where: { id, tenantId: request.tenantId, deletedAt: null },
+      data,
+    });
+    return fastify.prisma.stage.findFirst({
+      where: { id, tenantId: request.tenantId, deletedAt: null }
+    });
+  });
+
+  fastify.delete("/:id", async (request) => {
+    const { id } = paramsSchema.parse(request.params);
+    await fastify.prisma.$transaction([
+      fastify.prisma.stage.updateMany({
+        where: { id, tenantId: request.tenantId, deletedAt: null },
+        data: { deletedAt: new Date() },
+      }),
+      fastify.prisma.lesson.updateMany({
+        where: { stageId: id, tenantId: request.tenantId, deletedAt: null },
+        data: { deletedAt: new Date() },
+      }),
+    ]);
+    return { success: true };
+  });
+
 };
 
 export default stageRoutes;

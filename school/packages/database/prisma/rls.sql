@@ -3,9 +3,6 @@
 
 CREATE SCHEMA IF NOT EXISTS app;
 
--- Set default tenant context (empty = no tenant)
-ALTER DATABASE school SET app.current_tenant_id = '';
-
 -- Function to get current tenant
 CREATE OR REPLACE FUNCTION app.current_tenant_id() RETURNS UUID AS $$
   SELECT NULLIF(current_setting('app.current_tenant_id', true), '')::UUID;

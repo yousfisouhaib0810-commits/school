@@ -7,13 +7,20 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(4000),
   REDIS_URL: z.string().default("redis://localhost:6379"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  ALLOWED_ORIGINS: z.string().optional(),
   CLOUDFLARE_ACCOUNT_ID: z.string().optional(),
   CLOUDFLARE_STREAM_TOKEN: z.string().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   CHARGILY_SECRET_KEY: z.string().optional(),
+  CHARGILY_API_URL: z.string().url().default("https://pay.chargily.net/api/v2/checkouts"),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
+  ZOOM_ACCOUNT_ID: z.string().optional(),
+  ZOOM_CLIENT_ID: z.string().optional(),
+  ZOOM_CLIENT_SECRET: z.string().optional(),
+  ZOOM_SDK_KEY: z.string().optional(),
+  ZOOM_SDK_SECRET: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -17,6 +17,7 @@ model Tenant {
   plan      Plan         @default(FREE)
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
+  deletedAt DateTime?
 
   users         User[]
   emailVerifications EmailVerification[]
@@ -55,6 +56,7 @@ model User {
   emailVerifiedAt DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id])
   progress     VideoProgress[]
@@ -92,11 +94,14 @@ model Subject {
   title    String
   color    String @default("#3B82F6")
   sortOrder Int   @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   tenant Tenant  @relation(fields: [tenantId], references: [id])
   stages Stage[]
 
-  @@index([tenantId])
+  @@index([tenantId, deletedAt])
 }
 
 model Stage {
@@ -105,11 +110,14 @@ model Stage {
   subjectId String  @db.Uuid
   title     String
   sortOrder Int     @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   subject Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   lessons Lesson[]
 
-  @@index([tenantId, subjectId])
+  @@index([tenantId, subjectId, deletedAt])
 }
 
 model Lesson {
@@ -120,11 +128,14 @@ model Lesson {
   description String?
   videoUid    String?
   sortOrder   Int     @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   stage    Stage           @relation(fields: [stageId], references: [id], onDelete: Cascade)
   progress VideoProgress[]
 
-  @@index([tenantId, stageId])
+  @@index([tenantId, stageId, deletedAt])
 }
 
 model VideoProgress {
@@ -134,13 +145,15 @@ model VideoProgress {
   lessonId       String   @db.Uuid
   secondsWatched Int      @default(0)
   isCompleted    Boolean  @default(false)
+  createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
 
   lesson Lesson @relation(fields: [lessonId], references: [id])
   user   User   @relation(fields: [userId], references: [id])
 
   @@unique([userId, lessonId], name: "userId_lessonId")
-  @@index([tenantId, userId])
+  @@index([tenantId, userId, deletedAt])
 }
 
 model Subscription {
@@ -152,11 +165,13 @@ model Subscription {
   plan             Plan      @default(FREE)
   currentPeriodEnd DateTime?
   createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
 
   user   User   @relation(fields: [userId], references: [id])
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
-  @@index([tenantId])
+  @@index([tenantId, deletedAt])
 }
 
 enum SubStatus {
@@ -171,10 +186,13 @@ model LandingPage {
   tenantId  String  @db.Uuid
   blocks    Json
   published Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
-  @@index([tenantId])
+  @@index([tenantId, deletedAt])
 }
 
 model LiveSession {
@@ -187,8 +205,10 @@ model LiveSession {
   scheduledAt   DateTime
   isLive        Boolean  @default(false)
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
-  @@index([tenantId])
+  @@index([tenantId, deletedAt])
 }

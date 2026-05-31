@@ -23,25 +23,26 @@ import landingRoutes from "./routes/landing/route.js";
 import superAdminRoutes from "./routes/super-admin/route.js";
 
 const REDIS_CHECK_TIMEOUT_MS = 2_000;
+const DEFAULT_PRODUCTION_WEB_ORIGINS = new Set(["https://school-mu-one.vercel.app"]);
+
+function configuredOrigins(): Set<string> {
+  const origins = new Set(DEFAULT_PRODUCTION_WEB_ORIGINS);
+  for (const origin of env.ALLOWED_ORIGINS?.split(",") ?? []) {
+    const trimmed = origin.trim();
+    if (trimmed) {
+      origins.add(trimmed);
+    }
+  }
+  return origins;
+}
 
 function isAllowedOrigin(origin: string): boolean {
   try {
-    const { hostname } = new URL(origin);
-    // Allow localhost for local development
-    if (hostname === "localhost" || hostname.endsWith(".localhost")) return true;
-    // Allow all Vercel preview and production deployments
-    if (hostname.endsWith(".vercel.app")) return true;
-    // Allow a custom production domain set via environment variable
-    const allowedOrigin = process.env.ALLOWED_ORIGIN;
-    if (allowedOrigin) {
-      try {
-        const allowedHostname = new URL(allowedOrigin).hostname;
-        if (hostname === allowedHostname) return true;
-      } catch {
-        // Invalid ALLOWED_ORIGIN format — ignore
-      }
+    const { hostname, origin: normalizedOrigin } = new URL(origin);
+    if (env.NODE_ENV !== "production" && (hostname === "localhost" || hostname.endsWith(".localhost"))) {
+      return true;
     }
-    return false;
+    return configuredOrigins().has(normalizedOrigin);
   } catch {
     return false;
   }
@@ -154,8 +155,8 @@ async function bootstrap() {
   try {
     await fastify.listen({ port: env.PORT, host: "0.0.0.0" });
     fastify.log.info(`Server listening on port ${env.PORT}`);
-  } catch (err) {
-    fastify.log.error(err);
+  } catch (error) {
+    fastify.log.error(error);
     process.exit(1);
   }
 }

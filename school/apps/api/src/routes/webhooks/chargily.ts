@@ -1,21 +1,47 @@
 import { FastifyPluginAsync } from "fastify";
-import crypto from "crypto";
-import { tenantContext } from "../../plugins/prisma.js";
+import crypto from "node:crypto";
+import { z } from "zod";
 import { Plan } from "@school/shared";
+import { tenantContext } from "../../plugins/prisma.js";
 import { env } from "../../env.js";
 
+const rawWebhookBodySchema = z.object({
+  raw: z.string().min(1),
+  parsed: z.unknown(),
+});
+
+const checkoutPaidSchema = z.object({
+  type: z.literal("checkout.paid"),
+  data: z.object({
+    id: z.string().min(1),
+    metadata: z.object({
+      tenantId: z.string().uuid(),
+      userId: z.string().uuid(),
+      plan: z.nativeEnum(Plan),
+    }),
+  }),
+});
+
+function verifySignature(rawBody: string, signature: string, secret: string): boolean {
+  const computedSignature = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+  const computed = Buffer.from(computedSignature);
+  const received = Buffer.from(signature);
+  if (computed.length !== received.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(computed, received);
+}
+
 export const chargilyWebhookRoute: FastifyPluginAsync = async (fastify) => {
-  // Capture raw body as buffer for signature verification (Fastify 5 requires "buffer")
   fastify.addContentTypeParser(
     "application/json",
     { parseAs: "buffer" },
-    function (req, body: Buffer, done) {
+    function (_request, body: Buffer, done) {
       try {
         const rawBody = body.toString("utf8");
-        const json = JSON.parse(rawBody);
-        done(null, { raw: rawBody, parsed: json });
-      } catch (err: unknown) {
-        done(err as Error, undefined);
+        done(null, { raw: rawBody, parsed: JSON.parse(rawBody) });
+      } catch (error) {
+        done(error instanceof Error ? error : new Error("Invalid JSON"), undefined);
       }
     }
   );
@@ -31,60 +57,45 @@ export const chargilyWebhookRoute: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: "Missing signature" });
     }
 
-    const payload = request.body as { raw: string; parsed: unknown };
-    
-    // Verify signature
-    const computedSignature = crypto
-      .createHmac("sha256", env.CHARGILY_SECRET_KEY)
-      .update(payload.raw)
-      .digest("hex");
-
-    if (
-      computedSignature.length !== signature.length ||
-      !crypto.timingSafeEqual(Buffer.from(computedSignature), Buffer.from(signature))
-    ) {
+    const payload = rawWebhookBodySchema.parse(request.body);
+    if (!verifySignature(payload.raw, signature, env.CHARGILY_SECRET_KEY)) {
       return reply.status(400).send({ error: "Invalid signature" });
     }
 
-    const data = payload.parsed as Record<string, unknown>;
-    
-    if (data.type === "checkout.paid") {
-      const checkout = data.data as Record<string, unknown>;
-      const metadata = checkout.metadata as Record<string, string>;
-      
-      if (!metadata || !metadata.tenantId || !metadata.userId || !metadata.plan) {
-         request.log.warn({ checkoutId: checkout.id }, "Missing metadata on paid checkout");
-         return reply.status(200).send({ received: true });
+    const paidCheckout = checkoutPaidSchema.safeParse(payload.parsed);
+    if (!paidCheckout.success) {
+      return reply.status(200).send({ received: true });
+    }
+
+    const { id, metadata } = paidCheckout.data.data;
+    await tenantContext.run(metadata.tenantId, async () => {
+      const existing = await fastify.prisma.subscription.findFirst({
+        where: { tenantId: metadata.tenantId, userId: metadata.userId, deletedAt: null },
+        select: { id: true },
+      });
+
+      if (existing) {
+        await fastify.prisma.subscription.updateMany({
+          where: { id: existing.id, tenantId: metadata.tenantId },
+          data: {
+            chargilyId: id,
+            plan: metadata.plan,
+            status: "ACTIVE",
+          },
+        });
+        return;
       }
 
-      await tenantContext.run(metadata.tenantId, async () => {
-         // Create or update subscription
-         const existing = await fastify.prisma.subscription.findFirst({
-            where: { tenantId: metadata.tenantId, userId: metadata.userId }
-         });
-
-         if (existing) {
-            await fastify.prisma.subscription.updateMany({
-               where: { id: existing.id, tenantId: metadata.tenantId },
-               data: {
-                  chargilyId: checkout.id as string,
-                  plan: metadata.plan as Plan,
-                  status: "ACTIVE"
-               }
-            });
-         } else {
-            await fastify.prisma.subscription.create({
-               data: {
-                  tenantId: metadata.tenantId,
-                  userId: metadata.userId,
-                  chargilyId: checkout.id as string,
-                  plan: metadata.plan as Plan,
-                  status: "ACTIVE"
-               }
-            });
-         }
+      await fastify.prisma.subscription.create({
+        data: {
+          tenantId: metadata.tenantId,
+          userId: metadata.userId,
+          chargilyId: id,
+          plan: metadata.plan,
+          status: "ACTIVE",
+        },
       });
-    }
+    });
 
     return reply.status(200).send({ received: true });
   });

@@ -10,6 +10,7 @@ import {
   generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
+  ACCESS_TOKEN_COOKIE_OPTIONS,
   REFRESH_TOKEN_COOKIE_OPTIONS,
 } from "../../lib/tokens.js";
 import {
@@ -35,7 +36,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         where: { email_tenantId: { email: body.email, tenantId } },
       });
 
-      if (!user) {
+      if (!user || user.deletedAt) {
         return reply.status(401).send({ error: "Invalid credentials" });
       }
 
@@ -57,6 +58,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       const accessToken = await generateAccessToken(fastify, tokenPayload);
       const refreshToken = await generateRefreshToken(fastify, tokenPayload);
 
+      reply.setCookie("accessToken", accessToken, ACCESS_TOKEN_COOKIE_OPTIONS);
       reply.setCookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
 
       return { accessToken, user: { id: user.id, email: user.email, role: user.role } };
@@ -114,6 +116,24 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       });
     } catch (error) {
       request.log.error({ error, tenantId: result.tenant.id }, "Failed to send verification email");
+      await fastify.prisma.$transaction([
+        fastify.prisma.emailVerification.updateMany({
+          where: { tenantId: result.tenant.id },
+          data: { consumedAt: new Date() },
+        }),
+        fastify.prisma.user.updateMany({
+          where: { tenantId: result.tenant.id },
+          data: { deletedAt: new Date() },
+        }),
+        fastify.prisma.tenant.update({
+          where: { id: result.tenant.id },
+          data: {
+            deletedAt: new Date(),
+            status: "SUSPENDED",
+            subdomain: `failed-${result.tenant.id}`,
+          },
+        }),
+      ]);
       return reply.status(503).send({ error: "Verification email could not be sent" });
     }
 
@@ -133,8 +153,8 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const body = verifyEmailSchema.parse(request.body);
-      const tenant = await fastify.prisma.tenant.findUnique({
-        where: { subdomain: body.subdomain },
+      const tenant = await fastify.prisma.tenant.findFirst({
+        where: { subdomain: body.subdomain, deletedAt: null },
         select: { id: true, status: true },
       });
 
@@ -154,7 +174,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const user = await fastify.prisma.user.findFirst({
-        where: { id: verified.userId, tenantId: tenant.id },
+        where: { id: verified.userId, tenantId: tenant.id, deletedAt: null },
         select: { id: true, email: true, role: true, tenantId: true },
       });
 
@@ -171,6 +191,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       const accessToken = await generateAccessToken(fastify, tokenPayload);
       const refreshToken = await generateRefreshToken(fastify, tokenPayload);
 
+      reply.setCookie("accessToken", accessToken, ACCESS_TOKEN_COOKIE_OPTIONS);
       reply.setCookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
 
       return {
@@ -190,8 +211,8 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request, _reply) => {
       const body = resendEmailVerificationSchema.parse(request.body);
-      const tenant = await fastify.prisma.tenant.findUnique({
-        where: { subdomain: body.subdomain },
+      const tenant = await fastify.prisma.tenant.findFirst({
+        where: { subdomain: body.subdomain, deletedAt: null },
         select: { id: true, name: true, status: true },
       });
 
@@ -201,10 +222,10 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
 
       const user = await fastify.prisma.user.findUnique({
         where: { email_tenantId: { email: body.email, tenantId: tenant.id } },
-        select: { id: true, email: true, emailVerifiedAt: true },
+        select: { id: true, email: true, emailVerifiedAt: true, deletedAt: true },
       });
 
-      if (!user || user.emailVerifiedAt) {
+      if (!user || user.deletedAt || user.emailVerifiedAt) {
         return { success: true };
       }
 
@@ -251,6 +272,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     const newAccessToken = await generateAccessToken(fastify, tokenPayload);
     const newRefreshToken = await generateRefreshToken(fastify, tokenPayload);
 
+    reply.setCookie("accessToken", newAccessToken, ACCESS_TOKEN_COOKIE_OPTIONS);
     reply.setCookie("refreshToken", newRefreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
 
     return { accessToken: newAccessToken };
@@ -262,6 +284,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       preHandler: [fastify.authenticate],
     },
     async (_request, reply) => {
+      reply.clearCookie("accessToken", { path: "/" });
       reply.clearCookie("refreshToken", { path: "/api/auth" });
       return { success: true };
     }

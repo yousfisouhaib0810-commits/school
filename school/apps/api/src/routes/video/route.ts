@@ -1,7 +1,19 @@
 import { FastifyPluginAsync } from "fastify";
 import crypto from "node:crypto";
 import { lessonParamsSchema, videoProgressUpdateSchema, assignVideoSchema } from "@school/shared";
+import { z } from "zod";
 import { env } from "../../env.js";
+
+const playbackParamsSchema = z.object({
+  uid: z.string().min(1).max(256).regex(/^[a-zA-Z0-9_-]+$/),
+});
+
+const cloudflareUploadResponseSchema = z.object({
+  result: z.object({
+    uploadURL: z.string().url(),
+    uid: z.string().min(1),
+  }),
+});
 
 const videoRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get("/", {
@@ -14,14 +26,18 @@ const videoRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const lessons = await fastify.prisma.lesson.findMany({
-      where: { tenantId: request.tenantId },
+      where: {
+        tenantId: request.tenantId,
+        deletedAt: null,
+        stage: { deletedAt: null, subject: { deletedAt: null } },
+      },
       select: {
         id: true,
-        title: true,
-        description: true,
-        videoUid: true,
-        sortOrder: true,
-        stage: { select: { id: true, title: true } },
+          title: true,
+          description: true,
+          videoUid: true,
+          sortOrder: true,
+          stage: { select: { id: true, title: true, deletedAt: true } },
       },
       orderBy: { sortOrder: "asc" },
       take: 100,
@@ -55,7 +71,12 @@ const videoRoutes: FastifyPluginAsync = async (fastify) => {
     const body = videoProgressUpdateSchema.parse(request.body);
 
     const lesson = await fastify.prisma.lesson.findFirst({
-      where: { id: lessonId, tenantId: request.tenantId },
+      where: {
+        id: lessonId,
+        tenantId: request.tenantId,
+        deletedAt: null,
+        stage: { deletedAt: null, subject: { deletedAt: null } },
+      },
       select: { id: true },
     });
 
@@ -131,7 +152,7 @@ const videoRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(500).send({ error: "Could not generate upload URL" });
     }
 
-    const data = await response.json() as unknown as { result: { uploadURL: string; uid: string } };
+    const data = cloudflareUploadResponseSchema.parse(await response.json());
     return {
       uploadURL: data.result.uploadURL,
       uid: data.result.uid,
@@ -148,15 +169,20 @@ const videoRoutes: FastifyPluginAsync = async (fastify) => {
     const body = assignVideoSchema.parse(request.body);
     
     const lesson = await fastify.prisma.lesson.findFirst({
-       where: { id: body.lessonId, tenantId: request.tenantId }
+       where: {
+         id: body.lessonId,
+         tenantId: request.tenantId,
+         deletedAt: null,
+         stage: { deletedAt: null, subject: { deletedAt: null } },
+       }
     });
     
     if (!lesson) {
         return reply.status(404).send({ error: "Lesson not found" });
     }
     
-    await fastify.prisma.lesson.update({
-        where: { id: lesson.id },
+    await fastify.prisma.lesson.updateMany({
+        where: { id: lesson.id, tenantId: request.tenantId },
         data: { videoUid: body.videoUid }
     });
     
@@ -168,11 +194,16 @@ const videoRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get("/:uid/playback-token", {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
-    const { uid } = request.params as { uid: string };
+    const { uid } = playbackParamsSchema.parse(request.params);
     
     // Security Rule: Enforce tenant isolation and ownership before granting token
     const lesson = await fastify.prisma.lesson.findFirst({
-        where: { videoUid: uid, tenantId: request.tenantId }
+        where: {
+          videoUid: uid,
+          tenantId: request.tenantId,
+          deletedAt: null,
+          stage: { deletedAt: null, subject: { deletedAt: null } },
+        }
     });
 
     if (!lesson) {

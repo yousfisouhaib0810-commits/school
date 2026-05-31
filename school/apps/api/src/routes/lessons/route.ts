@@ -15,7 +15,17 @@ const lessonRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post("/", async (request, reply) => {
     const data = lessonSchema.parse(request.body);
-    const count = await fastify.prisma.lesson.count({ where: { stageId: data.stageId, tenantId: request.tenantId } });
+    const stage = await fastify.prisma.stage.findFirst({
+      where: { id: data.stageId, tenantId: request.tenantId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!stage) {
+      return reply.status(404).send({ error: "Stage not found" });
+    }
+
+    const count = await fastify.prisma.lesson.count({
+      where: { stageId: data.stageId, tenantId: request.tenantId, deletedAt: null },
+    });
     
     const lesson = await fastify.prisma.lesson.create({
       data: {
@@ -28,34 +38,13 @@ const lessonRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.status(201).send(lesson);
   });
 
-  fastify.patch("/:id", async (request) => {
-    const { id } = paramsSchema.parse(request.params);
-    const data = lessonUpdateSchema.parse(request.body);
-    
-    await fastify.prisma.lesson.updateMany({
-      where: { id, tenantId: request.tenantId },
-      data,
-    });
-    await fastify.redis.del(`tenant:${request.tenantId}:lessons`);
-    return fastify.prisma.lesson.findFirst({
-      where: { id, tenantId: request.tenantId }
-    });
-  });
-
-  fastify.delete("/:id", async (request) => {
-    const { id } = paramsSchema.parse(request.params);
-    await fastify.prisma.lesson.deleteMany({ where: { id, tenantId: request.tenantId } });
-    await fastify.redis.del(`tenant:${request.tenantId}:lessons`);
-    return { success: true };
-  });
-
   fastify.patch("/reorder", async (request) => {
     const items = reorderSchema.parse(request.body);
-    
+
     await fastify.prisma.$transaction(
       items.map((item) =>
         fastify.prisma.lesson.updateMany({
-          where: { id: item.id, tenantId: request.tenantId },
+          where: { id: item.id, tenantId: request.tenantId, deletedAt: null },
           data: { sortOrder: item.sortOrder },
         })
       )
@@ -63,6 +52,31 @@ const lessonRoutes: FastifyPluginAsync = async (fastify) => {
     await fastify.redis.del(`tenant:${request.tenantId}:lessons`);
     return { success: true };
   });
+
+  fastify.patch("/:id", async (request) => {
+    const { id } = paramsSchema.parse(request.params);
+    const data = lessonUpdateSchema.parse(request.body);
+    
+    await fastify.prisma.lesson.updateMany({
+      where: { id, tenantId: request.tenantId, deletedAt: null },
+      data,
+    });
+    await fastify.redis.del(`tenant:${request.tenantId}:lessons`);
+    return fastify.prisma.lesson.findFirst({
+      where: { id, tenantId: request.tenantId, deletedAt: null }
+    });
+  });
+
+  fastify.delete("/:id", async (request) => {
+    const { id } = paramsSchema.parse(request.params);
+    await fastify.prisma.lesson.updateMany({
+      where: { id, tenantId: request.tenantId, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
+    await fastify.redis.del(`tenant:${request.tenantId}:lessons`);
+    return { success: true };
+  });
+
 };
 
 export default lessonRoutes;

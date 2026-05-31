@@ -21,7 +21,6 @@ export function SubjectsManager() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const fetchSubjects = async () => {
-    if (!token) return;
     setLoading(true);
     const res = await apiClient<Subject[]>("/api/subjects", { token, parse: (v) => v as Subject[] });
     if (res.data) setSubjects(res.data);

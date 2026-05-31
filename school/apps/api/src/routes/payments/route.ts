@@ -2,7 +2,10 @@ import { FastifyPluginAsync } from "fastify";
 import { checkoutSessionSchema } from "@school/shared";
 import { env } from "../../env.js";
 
-const CHARGILY_API_URL = "https://pay.chargily.net/test/api/v2/checkouts";
+const PLAN_AMOUNTS_DZD = {
+  PRO: 5000,
+  ENTERPRISE: 15000,
+} as const;
 
 export const paymentsRoute: FastifyPluginAsync = async (fastify) => {
   fastify.post(
@@ -18,8 +21,7 @@ export const paymentsRoute: FastifyPluginAsync = async (fastify) => {
       
       const { plan, successUrl, cancelUrl } = parsed.data;
 
-      // Map plan to price and amount (mocking logic)
-      const amount = plan === "PRO" ? 5000 : plan === "ENTERPRISE" ? 15000 : 0;
+      const amount = plan === "PRO" || plan === "ENTERPRISE" ? PLAN_AMOUNTS_DZD[plan] : 0;
       
       if (amount === 0) {
         return reply.status(400).send({ error: "Cannot checkout free plan" });
@@ -31,7 +33,7 @@ export const paymentsRoute: FastifyPluginAsync = async (fastify) => {
       }
 
       try {
-        const response = await fetch(CHARGILY_API_URL, {
+        const response = await fetch(env.CHARGILY_API_URL, {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${env.CHARGILY_SECRET_KEY}`,

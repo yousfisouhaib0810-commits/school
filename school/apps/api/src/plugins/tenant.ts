@@ -40,8 +40,8 @@ const tenantPlugin: FastifyPluginAsync = async (fastify) => {
       return done();
     }
 
-    fastify.prisma.tenant.findUnique({
-      where: { subdomain: header.data },
+    fastify.prisma.tenant.findFirst({
+      where: { subdomain: header.data, deletedAt: null },
       select: { id: true, status: true },
     }).then((tenant) => {
       if (!tenant) {
