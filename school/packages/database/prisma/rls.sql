@@ -53,6 +53,12 @@ CREATE POLICY tenant_isolation_on_subscription ON "Subscription"
   USING ("tenantId" = app.current_tenant_id())
   WITH CHECK ("tenantId" = app.current_tenant_id());
 
+ALTER TABLE "PaymentEvent" ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_isolation_on_paymentevent ON "PaymentEvent";
+CREATE POLICY tenant_isolation_on_paymentevent ON "PaymentEvent"
+  USING ("tenantId" = app.current_tenant_id())
+  WITH CHECK ("tenantId" = app.current_tenant_id());
+
 ALTER TABLE "LandingPage" ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation_on_landingpage ON "LandingPage";
 CREATE POLICY tenant_isolation_on_landingpage ON "LandingPage"

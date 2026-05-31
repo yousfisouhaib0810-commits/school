@@ -82,11 +82,13 @@ Evidence:
 - Chérgily checkout and signed webhook exist.
 - Webhook payload is now validated with Zod and uses timing-safe signature checks.
 - Subscription writes are tenant-scoped.
+- Chérgily webhook processing is now idempotent through tenant-scoped `PaymentEvent` records.
+- Successful Chérgily checkout webhooks update both the subscription and the tenant plan in one transaction.
 
 Remaining:
 - Stripe is not implemented.
 - CIB/Edahabia integration is not implemented.
-- Payment idempotency is incomplete.
+- Add automated webhook integration tests and gateway-specific payment provider tests.
 
 ## Phase 6 - Landing Page Builder
 

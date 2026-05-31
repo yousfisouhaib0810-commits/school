@@ -1,6 +1,7 @@
 import { FastifyPluginAsync } from "fastify";
 import crypto from "node:crypto";
 import { z } from "zod";
+import { Prisma } from "@school/database";
 import { Plan } from "@school/shared";
 import { tenantContext } from "../../plugins/prisma.js";
 import { env } from "../../env.js";
@@ -30,6 +31,10 @@ function verifySignature(rawBody: string, signature: string, secret: string): bo
     return false;
   }
   return crypto.timingSafeEqual(computed, received);
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
 
 export const chargilyWebhookRoute: FastifyPluginAsync = async (fastify) => {
@@ -69,32 +74,55 @@ export const chargilyWebhookRoute: FastifyPluginAsync = async (fastify) => {
 
     const { id, metadata } = paidCheckout.data.data;
     await tenantContext.run(metadata.tenantId, async () => {
-      const existing = await fastify.prisma.subscription.findFirst({
-        where: { tenantId: metadata.tenantId, userId: metadata.userId, deletedAt: null },
-        select: { id: true },
-      });
+      try {
+        await fastify.prisma.$transaction(async (tx) => {
+          await tx.paymentEvent.create({
+            data: {
+              tenantId: metadata.tenantId,
+              provider: "chargily",
+              eventId: id,
+              eventType: paidCheckout.data.type,
+            },
+          });
 
-      if (existing) {
-        await fastify.prisma.subscription.updateMany({
-          where: { id: existing.id, tenantId: metadata.tenantId },
-          data: {
-            chargilyId: id,
-            plan: metadata.plan,
-            status: "ACTIVE",
-          },
+          const existing = await tx.subscription.findFirst({
+            where: { tenantId: metadata.tenantId, userId: metadata.userId, deletedAt: null },
+            select: { id: true },
+          });
+
+          if (existing) {
+            await tx.subscription.updateMany({
+              where: { id: existing.id, tenantId: metadata.tenantId },
+              data: {
+                chargilyId: id,
+                plan: metadata.plan,
+                status: "ACTIVE",
+              },
+            });
+          } else {
+            await tx.subscription.create({
+              data: {
+                tenantId: metadata.tenantId,
+                userId: metadata.userId,
+                chargilyId: id,
+                plan: metadata.plan,
+                status: "ACTIVE",
+              },
+            });
+          }
+
+          await tx.tenant.updateMany({
+            where: { id: metadata.tenantId, deletedAt: null },
+            data: { plan: metadata.plan },
+          });
         });
-        return;
+      } catch (error) {
+        if (isUniqueConstraintError(error)) {
+          request.log.info({ checkoutId: id, tenantId: metadata.tenantId }, "Duplicate Chargily webhook ignored");
+          return;
+        }
+        throw error;
       }
-
-      await fastify.prisma.subscription.create({
-        data: {
-          tenantId: metadata.tenantId,
-          userId: metadata.userId,
-          chargilyId: id,
-          plan: metadata.plan,
-          status: "ACTIVE",
-        },
-      });
     });
 
     return reply.status(200).send({ received: true });

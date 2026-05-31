@@ -11,4 +11,4 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 export default prisma;
-export { PrismaClient } from "@prisma/client";
+export { Prisma, PrismaClient } from "@prisma/client";
