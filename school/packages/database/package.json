@@ -1,0 +1,30 @@
+{
+  "name": "@school/database",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "postinstall": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "generate": "prisma generate",
+    "db:seed": "tsx src/seed.ts",
+    "db:rls": "psql $DATABASE_URL -f prisma/rls.sql",
+    "build": "prisma generate && tsc",
+    "type-check": "prisma generate && tsc --noEmit",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "argon2": "^0.41.1",
+    "prisma": "^6.2.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

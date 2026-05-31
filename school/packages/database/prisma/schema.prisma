@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  relationMode = "foreignKeys"
+}
+
+model Tenant {
+  id        String       @id @default(uuid()) @db.Uuid
+  subdomain String       @unique
+  name      String
+  logoUrl   String?
+  status    TenantStatus @default(ACTIVE)
+  plan      Plan         @default(FREE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  users         User[]
+  subjects      Subject[]
+  landingPages  LandingPage[]
+  liveSessions  LiveSession[]
+  subscriptions Subscription[]
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+model User {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @db.Uuid
+  email          String
+  passwordHash   String
+  name           String?
+  role           Role     @default(STUDENT)
+  chargilyId     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  progress     VideoProgress[]
+  subscriptions Subscription[]
+
+  @@unique([email, tenantId], name: "email_tenantId")
+  @@index([tenantId])
+}
+
+model Subject {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  title    String
+  color    String @default("#3B82F6")
+  sortOrder Int   @default(0)
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  stages Stage[]
+
+  @@index([tenantId])
+}
+
+model Stage {
+  id        String  @id @default(uuid()) @db.Uuid
+  tenantId  String  @db.Uuid
+  subjectId String  @db.Uuid
+  title     String
+  sortOrder Int     @default(0)
+
+  subject Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@index([tenantId, subjectId])
+}
+
+model Lesson {
+  id          String  @id @default(uuid()) @db.Uuid
+  tenantId    String  @db.Uuid
+  stageId     String  @db.Uuid
+  title       String
+  description String?
+  videoUid    String?
+  sortOrder   Int     @default(0)
+
+  stage    Stage           @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  progress VideoProgress[]
+
+  @@index([tenantId, stageId])
+}
+
+model VideoProgress {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @db.Uuid
+  userId         String   @db.Uuid
+  lessonId       String   @db.Uuid
+  secondsWatched Int      @default(0)
+  isCompleted    Boolean  @default(false)
+  updatedAt      DateTime @updatedAt
+
+  lesson Lesson @relation(fields: [lessonId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([userId, lessonId], name: "userId_lessonId")
+  @@index([tenantId, userId])
+}
+
+model Subscription {
+  id               String    @id @default(uuid()) @db.Uuid
+  tenantId         String    @db.Uuid
+  userId           String    @db.Uuid
+  chargilyId       String?
+  status           SubStatus @default(ACTIVE)
+  plan             Plan      @default(FREE)
+  currentPeriodEnd DateTime?
+  createdAt        DateTime  @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+enum SubStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+model LandingPage {
+  id        String  @id @default(uuid()) @db.Uuid
+  tenantId  String  @db.Uuid
+  blocks    Json
+  published Boolean @default(false)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+model LiveSession {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @db.Uuid
+  title         String
+  zoomMeetingId String
+  zoomJoinUrl   String?
+  zoomPassword  String?
+  scheduledAt   DateTime
+  isLive        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
