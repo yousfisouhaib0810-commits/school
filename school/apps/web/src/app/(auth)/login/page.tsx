@@ -41,7 +41,7 @@ export default function LoginPage() {
     clearAccessToken();
     setTenantSubdomain(subdomain);
     login(data.user);
-    router.push("/");
+    router.push(data.user.role === "SUPER_ADMIN" ? "/dashboard" : "/");
   }
 
   return (

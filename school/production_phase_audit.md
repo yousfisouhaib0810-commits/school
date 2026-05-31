@@ -144,10 +144,14 @@ Evidence:
 - API checks `SUPER_ADMIN` role.
 - Tenant status changes are now written with tenant-scoped audit log records inside the same transaction.
 - Super-admin audit logs can now be queried through a paginated API and reviewed in the dashboard.
+- Super-admin API access now revalidates the JWT actor against the database and rejects deleted, unverified, non-super-admin, or suspended-tenant actors before global reads.
+- Super-admin tenant-list and audit-log reads are now recorded as audit events with request context metadata.
+- The login flow now routes `SUPER_ADMIN` users directly to the operational `/dashboard` super-admin console.
+- Automated API tests now cover stale actor rejection, non-super-admin rejection, audited global tenant reads, audited audit-log reads, and audited tenant status updates.
 
 Remaining:
-- The secret admin entry path and operational login flow need hardening.
-- Broaden audit logging to all sensitive admin actions.
+- Add browser-level super-admin login and console workflow tests after a production super-admin test account is available.
+- Broaden audit logging beyond super-admin operations to tenant-admin content changes where product policy requires it.
 
 ## Phase 9 - Protection, Performance, Quality
 
@@ -167,6 +171,7 @@ Evidence:
 - Landing builder tests cover tenant-scoped API writes and invalid block rejection; the dashboard builder now uses controls plus preview instead of JSON editing.
 - Student portal pages now expose explicit loading, empty, and retryable error states for course, lesson, and live-session flows.
 - Tenant middleware tests now verify `/api/readiness` is public while tenant-scoped routes still reject missing tenant headers.
+- Super-admin tests now verify hardened actor revalidation and audit logging for sensitive global operations.
 
 Remaining:
 - Add broader automated tests for auth edge cases, tenant isolation, webhooks, payments, and RLS.

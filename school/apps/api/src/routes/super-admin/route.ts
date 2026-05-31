@@ -1,4 +1,4 @@
-import { FastifyPluginAsync } from "fastify";
+import { FastifyInstance, FastifyPluginAsync, FastifyRequest } from "fastify";
 import { z } from "zod";
 
 const paramsSchema = z.object({
@@ -15,6 +15,58 @@ const auditLogsQuerySchema = z.object({
   take: z.coerce.number().int().min(1).max(50).default(25),
 });
 
+async function verifySuperAdminActor(fastify: FastifyInstance, request: FastifyRequest): Promise<boolean> {
+  if (request.userRole !== "SUPER_ADMIN") {
+    return false;
+  }
+
+  const actor = await fastify.prisma.user.findFirst({
+    where: {
+      id: request.userId,
+      tenantId: request.tenantId,
+      role: "SUPER_ADMIN",
+      deletedAt: null,
+      emailVerifiedAt: { not: null },
+      tenant: {
+        status: "ACTIVE",
+        deletedAt: null,
+      },
+    },
+    select: { id: true },
+  });
+
+  return actor !== null;
+}
+
+async function createSuperAdminAuditLog(
+  fastify: FastifyInstance,
+  request: FastifyRequest,
+  input: {
+    action: string;
+    entityType: string;
+    entityId: string;
+    metadata?: Record<string, string | number | boolean | null>;
+  }
+): Promise<void> {
+  const userAgentHeader = request.headers["user-agent"];
+  const userAgent = typeof userAgentHeader === "string" ? userAgentHeader : null;
+
+  await fastify.prisma.auditLog.create({
+    data: {
+      tenantId: request.tenantId,
+      actorUserId: request.userId,
+      action: input.action,
+      entityType: input.entityType,
+      entityId: input.entityId,
+      metadata: {
+        ip: request.ip,
+        userAgent,
+        ...input.metadata,
+      },
+    },
+  });
+}
+
 const superAdminRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook("preHandler", async (request, reply) => {
     try {
@@ -23,26 +75,16 @@ const superAdminRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(401).send({ error: "Unauthorized" });
     }
 
-    if (request.userRole !== "SUPER_ADMIN") {
+    if (!(await verifySuperAdminActor(fastify, request))) {
       return reply.status(403).send({ error: "Forbidden: Super Admin only" });
     }
   });
 
   fastify.get("/tenants", async (request, reply) => {
-    // We intentionally run this OUTSIDE the tenantContext 
-    // to bypass RLS and fetch across all tenants.
-    // The query block in prisma.ts only applies RLS if `tenantContext.getStore()` is truthy.
-    
-    // 1. Get raw tenant list
     const tenants = await fastify.prisma.tenant.findMany({
       orderBy: { createdAt: "desc" },
     });
 
-    // 2. We can manually augment it by fetching related stats.
-    // Since prisma.js plugin enforces RLS for "User" table IF tenantId is set,
-    // and since tenantContext is UNDEFINED here (because we added /api/super-admin to PUBLIC_PATH_PREFIXES),
-    // we can query the users table across the DB without RLS kicking in.
-    
     const userCounts = await fastify.prisma.user.groupBy({
       by: ["tenantId"],
       _count: { id: true },
@@ -53,6 +95,13 @@ const superAdminRoutes: FastifyPluginAsync = async (fastify) => {
       return { ...tenant, usersCount: count };
     });
 
+    await createSuperAdminAuditLog(fastify, request, {
+      action: "SUPER_ADMIN_TENANTS_VIEWED",
+      entityType: "SUPER_ADMIN_DASHBOARD",
+      entityId: request.tenantId,
+      metadata: { resultCount: enrichedTenants.length },
+    });
+
     return reply.send(enrichedTenants);
   });
 
@@ -61,6 +110,16 @@ const superAdminRoutes: FastifyPluginAsync = async (fastify) => {
     if (!query.success) {
       return reply.status(400).send({ error: "Invalid audit log query" });
     }
+
+    await createSuperAdminAuditLog(fastify, request, {
+      action: "SUPER_ADMIN_AUDIT_LOGS_VIEWED",
+      entityType: "AUDIT_LOG",
+      entityId: request.tenantId,
+      metadata: {
+        filteredTenantId: query.data.tenantId ?? null,
+        take: query.data.take,
+      },
+    });
 
     const logs = await fastify.prisma.auditLog.findMany({
       where: {
