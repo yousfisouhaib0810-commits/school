@@ -1,11 +1,17 @@
 import { FastifyPluginAsync } from "fastify";
 import { checkoutSessionSchema } from "@school/shared";
+import { z } from "zod";
 import { env } from "../../env.js";
 
 const PLAN_AMOUNTS_DZD = {
   PRO: 5000,
   ENTERPRISE: 15000,
 } as const;
+
+const chargilyCheckoutResponseSchema = z.object({
+  checkout_url: z.string().url(),
+  id: z.string().min(1),
+});
 
 export const paymentsRoute: FastifyPluginAsync = async (fastify) => {
   fastify.post(
@@ -58,7 +64,7 @@ export const paymentsRoute: FastifyPluginAsync = async (fastify) => {
           return reply.status(500).send({ error: "Payment gateway error" });
         }
 
-        const data = await response.json() as { checkout_url: string, id: string };
+        const data = chargilyCheckoutResponseSchema.parse(await response.json());
         return { checkoutUrl: data.checkout_url, id: data.id };
       } catch (error) {
         request.log.error(error, "Failed to initialize payment");

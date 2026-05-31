@@ -97,10 +97,14 @@ Evidence:
 - Successful Chérgily checkout webhooks update both the subscription and the tenant plan in one transaction.
 - Automated API tests now verify invalid webhook signatures are rejected without writes and duplicate Chérgily events are processed once.
 
+Additional Phase 5 evidence after checkout-route hardening:
+- Chargily checkout responses are now validated before use.
+- Automated API tests now verify checkout creation sends tenant/user/plan metadata to Chargily and free plans do not call the gateway.
+
 Remaining:
 - Stripe is not implemented.
 - CIB/Edahabia integration is not implemented.
-- Add checkout-route tests and gateway-specific tests for Stripe and CIB/Edahabia once those providers are implemented.
+- Add gateway-specific tests for Stripe and CIB/Edahabia once those providers are implemented.
 
 ## Phase 6 - Landing Page Builder
 
@@ -158,6 +162,7 @@ Evidence:
 - Auth tenant-isolation tests cover login lookup and session bootstrap tenant filters.
 - Teacher dashboard API tests cover CRUD, soft-delete, reorder, tenant ownership checks, and lesson cache invalidation.
 - Cloudflare playback signing tests verify configured signed iframe URLs include user and tenant binding.
+- Payment tests cover Chargily checkout metadata, free-plan rejection, webhook signatures, and webhook idempotency.
 - Tenant middleware tests now verify `/api/readiness` is public while tenant-scoped routes still reject missing tenant headers.
 
 Remaining:
