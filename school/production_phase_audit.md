@@ -144,6 +144,7 @@ Evidence:
 - `pnpm type-check`, `pnpm lint`, `pnpm test`, and `pnpm build` pass locally after the latest changes.
 - Remaining frontend API response casts and raw HTML rendering patterns were removed from the inspected app/package source paths.
 - A first automated API security test covers CSRF token validation and tamper rejection.
+- Tenant middleware tests now verify `/api/readiness` is public while tenant-scoped routes still reject missing tenant headers.
 
 Remaining:
 - Add broader automated tests for auth, tenant isolation, webhooks, payments, and RLS.
