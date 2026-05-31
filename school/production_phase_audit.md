@@ -49,9 +49,10 @@ Evidence:
 - Soft delete is now used for subject/stage/lesson deletion.
 - Subject, stage, and lesson management now use inline forms and in-app delete confirmation instead of browser `prompt`/`confirm`.
 - Automated API tests now verify subject, stage, and lesson reorder requests stay scoped to the authenticated tenant.
+- Automated API tests now verify subject, stage, and lesson create, update, parent ownership checks, soft-delete cascades, and lesson cache invalidation.
 
 Remaining:
-- Add broader CRUD tests for subject/stage/lesson creation, update, and soft-delete behaviour.
+- Add browser-level teacher dashboard workflow tests after production test users are available.
 
 ## Phase 3 - Protected Video
 
@@ -155,6 +156,7 @@ Evidence:
 - Remaining frontend API response casts and raw HTML rendering patterns were removed from the inspected app/package source paths.
 - Automated API security tests cover CSRF token validation, tamper rejection, request-level enforcement, and the intended webhook exemption.
 - Auth tenant-isolation tests cover login lookup and session bootstrap tenant filters.
+- Teacher dashboard API tests cover CRUD, soft-delete, reorder, tenant ownership checks, and lesson cache invalidation.
 - Tenant middleware tests now verify `/api/readiness` is public while tenant-scoped routes still reject missing tenant headers.
 
 Remaining:
