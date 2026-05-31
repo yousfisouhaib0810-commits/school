@@ -60,6 +60,12 @@ export const authSessionResponseSchema = z.object({
   user: authUserSchema,
 });
 export const authLoginResponseSchema = authSessionResponseSchema;
+export const authSessionBootstrapResponseSchema = authSessionResponseSchema.extend({
+  tenant: z.object({
+    id: z.string().uuid(),
+    subdomain: registerSchema.shape.subdomain,
+  }),
+});
 
 export const authRegisterResponseSchema = z.object({
   requiresEmailVerification: z.literal(true),
@@ -206,6 +212,7 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 export type TokenPayload = z.infer<typeof tokenPayloadSchema>;
 export type AuthUser = z.infer<typeof authUserSchema>;
 export type AuthLoginResponse = z.infer<typeof authLoginResponseSchema>;
+export type AuthSessionBootstrapResponse = z.infer<typeof authSessionBootstrapResponseSchema>;
 export type AuthRegisterResponse = z.infer<typeof authRegisterResponseSchema>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type ResendEmailVerificationInput = z.infer<typeof resendEmailVerificationSchema>;

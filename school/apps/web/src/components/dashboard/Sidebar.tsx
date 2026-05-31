@@ -1,21 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BookOpen,
-  LayoutDashboard,
-  Video,
-  Users,
-  Settings,
-  Radio,
-  Layers,
   GraduationCap,
+  Layers,
+  LayoutDashboard,
   LogOut,
+  Radio,
+  Settings,
+  Users,
+  Video,
 } from "lucide-react";
-import { useAuthStore } from "@/lib/store";
-import { useRouter } from "next/navigation";
 import { clearAccessToken, clearTenantSubdomain } from "@/lib/auth";
+import { useAuthStore } from "@/lib/store";
 
 const NAV_ITEMS = [
   { href: "/", label: "لوحة التحكم", icon: LayoutDashboard },
@@ -30,8 +29,8 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const logout = useAuthStore((s) => s.logout);
   const router = useRouter();
+  const logout = useAuthStore((state) => state.logout);
 
   const handleLogout = () => {
     clearAccessToken();
@@ -41,9 +40,9 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-white border-l border-border min-h-screen p-4 flex flex-col justify-between">
+    <aside className="flex min-h-screen w-64 flex-col justify-between border-l border-border bg-white p-4">
       <div>
-        <div className="mb-8 px-2 flex items-center justify-between">
+        <div className="mb-8 flex items-center justify-between px-2">
           <h2 className="text-xl font-bold text-primary">الأكاديمية</h2>
         </div>
         <nav className="space-y-1">
@@ -53,28 +52,27 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                   isActive
-                    ? "bg-primary text-primary-foreground font-medium"
+                    ? "bg-primary font-medium text-primary-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
-                <item.icon className="w-5 h-5" />
+                <item.icon className="h-5 w-5" />
                 {item.label}
               </Link>
             );
           })}
         </nav>
       </div>
-      <div>
-        <button
-          onClick={handleLogout}
-          className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors"
-        >
-          <LogOut className="w-5 h-5" />
-          تسجيل الخروج
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-destructive transition-colors hover:bg-destructive/10"
+      >
+        <LogOut className="h-5 w-5" />
+        تسجيل الخروج
+      </button>
     </aside>
   );
 }

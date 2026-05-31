@@ -24,11 +24,11 @@ Evidence:
 - Refresh and access tokens are now also set in httpOnly cookies.
 - Cross-site production cookies are now paired with a signed CSRF token on state-changing API requests.
 - Auth responses no longer return access tokens in JSON; the frontend uses httpOnly cookies for authenticated API calls.
+- `/api/auth/session` now hydrates the frontend user from the httpOnly access-token cookie after page refresh.
 - Tenant routes include app-level `tenantId` filters and RLS policies exist.
 - Auth routes are rate-limited.
 
 Remaining:
-- Add a dedicated session bootstrap endpoint so page refreshes can hydrate the frontend user without reading tokens.
 - Add focused automated tests for CSRF rejection/acceptance and tenant isolation.
 
 ## Phase 2 - Teacher Dashboard

@@ -37,6 +37,47 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     return { token };
   });
 
+  fastify.get(
+    "/session",
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request, reply) => {
+      const user = await fastify.prisma.user.findFirst({
+        where: {
+          id: request.userId,
+          tenantId: request.tenantId,
+          deletedAt: null,
+          emailVerifiedAt: { not: null },
+        },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          tenant: {
+            select: {
+              id: true,
+              subdomain: true,
+              status: true,
+              deletedAt: true,
+            },
+          },
+        },
+      });
+
+      if (!user || user.tenant.deletedAt || user.tenant.status === "SUSPENDED") {
+        reply.clearCookie("accessToken", { path: "/" });
+        reply.clearCookie("refreshToken", { path: "/api/auth" });
+        return reply.status(401).send({ error: "Unauthorized" });
+      }
+
+      return {
+        user: { id: user.id, email: user.email, role: user.role },
+        tenant: { id: user.tenant.id, subdomain: user.tenant.subdomain },
+      };
+    }
+  );
+
   fastify.post(
     "/login",
     {
