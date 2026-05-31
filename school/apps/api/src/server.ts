@@ -28,7 +28,13 @@ import { getEmailDomain, isConfiguredValue, isUsableEmailSender } from "./servic
 const REDIS_CHECK_TIMEOUT_MS = 2_000;
 const EXTERNAL_READINESS_TIMEOUT_MS = 3_000;
 const DEFAULT_PRODUCTION_WEB_ORIGINS = new Set(["https://school-mu-one.vercel.app"]);
-type ReadinessValue = "ok" | "missing" | "error" | "invalid_api_key" | "unverified_domain";
+type ReadinessValue =
+  | "ok"
+  | "missing"
+  | "error"
+  | "invalid_api_key"
+  | "insufficient_permissions"
+  | "unverified_domain";
 
 const resendDomainsResponseSchema = z.object({
   data: z.array(
@@ -59,7 +65,10 @@ async function checkResendReadiness(): Promise<ReadinessValue> {
     });
 
     if (!response.ok) {
-      return response.status === 401 || response.status === 403 ? "invalid_api_key" : "error";
+      if (response.status === 401) {
+        return "invalid_api_key";
+      }
+      return response.status === 403 ? "insufficient_permissions" : "error";
     }
 
     const domains = resendDomainsResponseSchema.parse(await response.json());
