@@ -3,6 +3,7 @@ import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import cookie from "@fastify/cookie";
+import { z } from "zod";
 import { Socket } from "node:net";
 import { env } from "./env.js";
 import prismaPlugin from "./plugins/prisma.js";
@@ -24,10 +25,67 @@ import landingRoutes from "./routes/landing/route.js";
 import superAdminRoutes from "./routes/super-admin/route.js";
 
 const REDIS_CHECK_TIMEOUT_MS = 2_000;
+const EXTERNAL_READINESS_TIMEOUT_MS = 3_000;
 const DEFAULT_PRODUCTION_WEB_ORIGINS = new Set(["https://school-mu-one.vercel.app"]);
+type ReadinessValue = "ok" | "missing" | "error" | "unverified_domain";
 
-function hasConfiguredValue(value: string | undefined): boolean {
+const resendDomainsResponseSchema = z.object({
+  data: z.array(
+    z.object({
+      name: z.string(),
+      status: z.string(),
+      capabilities: z.object({
+        sending: z.string(),
+      }),
+    })
+  ),
+});
+
+function hasConfiguredValue(value: string | undefined): value is string {
   return Boolean(value && !value.toLowerCase().includes("placeholder") && !value.toLowerCase().includes("replace-with"));
+}
+
+function getEmailDomain(emailFrom: string): string | null {
+  const emailAddress = emailFrom.includes("<") && emailFrom.includes(">")
+    ? emailFrom.slice(emailFrom.indexOf("<") + 1, emailFrom.indexOf(">"))
+    : emailFrom;
+  const [, domain] = emailAddress.trim().split("@");
+  return domain?.toLowerCase() ?? null;
+}
+
+async function checkResendReadiness(): Promise<ReadinessValue> {
+  if (!hasConfiguredValue(env.RESEND_API_KEY) || !hasConfiguredValue(env.EMAIL_FROM)) {
+    return "missing";
+  }
+
+  const emailDomain = getEmailDomain(env.EMAIL_FROM);
+  if (!emailDomain) {
+    return "error";
+  }
+
+  try {
+    const response = await fetch("https://api.resend.com/domains", {
+      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}` },
+      signal: AbortSignal.timeout(EXTERNAL_READINESS_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+      return "error";
+    }
+
+    const domains = resendDomainsResponseSchema.parse(await response.json());
+    const matchingDomain = domains.data.find((domain) => domain.name.toLowerCase() === emailDomain);
+
+    if (!matchingDomain) {
+      return "unverified_domain";
+    }
+
+    return matchingDomain.status === "verified" && matchingDomain.capabilities.sending === "enabled"
+      ? "ok"
+      : "unverified_domain";
+  } catch {
+    return "error";
+  }
 }
 
 function configuredOrigins(): Set<string> {
@@ -137,7 +195,7 @@ async function bootstrap() {
     const checks = {
       database: "ok",
       redis: "ok",
-      email: hasConfiguredValue(env.RESEND_API_KEY) && hasConfiguredValue(env.EMAIL_FROM) ? "ok" : "missing",
+      email: await checkResendReadiness(),
       cloudflareUpload:
         hasConfiguredValue(env.CLOUDFLARE_ACCOUNT_ID) && hasConfiguredValue(env.CLOUDFLARE_STREAM_TOKEN)
           ? "ok"
