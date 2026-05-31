@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Copy, Plus, Video } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { z } from "zod";
 
 interface SessionData {
   id: string;
@@ -14,6 +15,15 @@ interface SessionData {
   scheduledAt: string;
   isLive: boolean;
 }
+
+const sessionsResponseSchema = z.array(
+  z.object({
+    id: z.string().uuid(),
+    title: z.string(),
+    scheduledAt: z.string(),
+    isLive: z.boolean(),
+  })
+);
 
 export default function AdminLiveSessionsPage() {
   const [sessions, setSessions] = useState<SessionData[]>([]);
@@ -25,7 +35,7 @@ export default function AdminLiveSessionsPage() {
   const loadSessions = async () => {
     try {
       const response = await apiClient<SessionData[]>("/api/live", {
-        parse: (raw: unknown) => raw as SessionData[],
+        parse: (raw: unknown) => sessionsResponseSchema.parse(raw),
       });
 
       if (response.error) {

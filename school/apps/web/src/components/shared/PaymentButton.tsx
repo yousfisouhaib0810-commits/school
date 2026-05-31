@@ -5,12 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Plan } from "@school/shared";
 import { apiClient } from "@/lib/api";
 import { Loader2 } from "lucide-react";
-import { toast } from "sonner"; // Assuming sonner is used for toast
+import { toast } from "sonner";
+import { z } from "zod";
 
 interface PaymentButtonProps {
   plan: Plan;
   label: string;
 }
+
+const checkoutResponseSchema = z.object({
+  checkoutUrl: z.string().url(),
+});
 
 export function PaymentButton({ plan, label }: PaymentButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +30,7 @@ export function PaymentButton({ plan, label }: PaymentButtonProps) {
           successUrl: `${window.location.origin}/billing?success=true`,
           cancelUrl: `${window.location.origin}/billing?canceled=true`,
         }),
-        parse: (raw: unknown) => raw as { checkoutUrl: string },
+        parse: (raw: unknown) => checkoutResponseSchema.parse(raw),
       });
 
       if (response.error) {
@@ -34,8 +39,7 @@ export function PaymentButton({ plan, label }: PaymentButtonProps) {
       }
 
       if (response.data?.checkoutUrl) {
-         // Redirect to Chargily Checkout URL
-         window.location.href = response.data.checkoutUrl;
+        window.location.href = response.data.checkoutUrl;
       }
     } catch {
       toast.error("Failed to initiate payment");

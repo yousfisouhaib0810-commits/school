@@ -1,42 +1,45 @@
 "use client";
 
 import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { X } from "lucide-react";
+import { useForm, type SubmitHandler } from "react-hook-form";
+import * as z from "zod";
+import { subjectSchema } from "@school/shared";
 import { apiClient } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
-import { subjectSchema } from "@school/shared";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { X } from "lucide-react";
 
-type FormValues = z.infer<typeof subjectSchema>;
+type SubjectFormInput = z.input<typeof subjectSchema>;
+type SubjectFormValues = z.output<typeof subjectSchema>;
 
-export function SubjectDialog({ 
-  onClose, 
-  onSuccess 
-}: { 
-  onClose: () => void; 
+export function SubjectDialog({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void;
   onSuccess: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
-  const token = useAuthStore((s) => s.accessToken) ?? undefined;
-  
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(subjectSchema) as any,
+  const token = useAuthStore((state) => state.accessToken) ?? undefined;
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<SubjectFormInput, unknown, SubjectFormValues>({
+    resolver: zodResolver(subjectSchema),
     defaultValues: {
       color: "#3B82F6",
       title: "",
-    }
+    },
   });
 
-  const onSubmit = async (data: unknown) => {
+  const onSubmit: SubmitHandler<SubjectFormValues> = async (data) => {
     setError(null);
     const res = await apiClient("/api/subjects", {
       method: "POST",
       token,
       body: JSON.stringify(data),
-      parse: (v) => v,
     });
 
     if (res.error) {
@@ -50,52 +53,59 @@ export function SubjectDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden" dir="rtl">
-        <div className="flex justify-between items-center p-6 border-b border-border">
+      <div className="w-full max-w-md overflow-hidden rounded-xl bg-white shadow-xl" dir="rtl">
+        <div className="flex items-center justify-between border-b border-border p-6">
           <h2 className="text-xl font-bold">مادة جديدة</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:bg-muted p-2 rounded-full transition-colors cursor-pointer">
-            <X className="w-5 h-5" />
+          <button
+            type="button"
+            onClick={onClose}
+            className="cursor-pointer rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted"
+            aria-label="إغلاق"
+          >
+            <X className="h-5 w-5" />
           </button>
         </div>
-        
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-          {error && <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">{error}</div>}
-          
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-6">
+          {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
+
           <div>
-            <label className="block text-sm font-medium mb-1">اسم المادة</label>
+            <label className="mb-1 block text-sm font-medium">اسم المادة</label>
             <input
               {...register("title")}
               className="w-full rounded-lg border border-border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="مثال: الرياضيات"
             />
-            {errors.title && <p className="text-sm text-destructive mt-1">{errors.title.message}</p>}
+            {errors.title && <p className="mt-1 text-sm text-destructive">{errors.title.message}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">لون المادة</label>
-            <div className="flex gap-3 items-center">
+            <label className="mb-1 block text-sm font-medium">لون المادة</label>
+            <div className="flex items-center gap-3">
               <input
                 type="color"
                 {...register("color")}
-                className="w-12 h-12 rounded cursor-pointer p-1 bg-white border border-border"
+                className="h-12 w-12 cursor-pointer rounded border border-border bg-white p-1"
               />
-              <span className="text-sm text-muted-foreground" dir="ltr">{register("color").name}</span>
+              <span className="text-sm text-muted-foreground" dir="ltr">
+                #RRGGBB
+              </span>
             </div>
-            {errors.color && <p className="text-sm text-destructive mt-1">{errors.color.message}</p>}
+            {errors.color && <p className="mt-1 text-sm text-destructive">{errors.color.message}</p>}
           </div>
 
-          <div className="pt-4 flex justify-end gap-3">
+          <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-muted/80 rounded-lg transition-colors cursor-pointer"
+              className="cursor-pointer rounded-lg bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80"
             >
               إلغاء
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+              className="cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
               {isSubmitting ? "جاري الحفظ..." : "حفظ المادة"}
             </button>

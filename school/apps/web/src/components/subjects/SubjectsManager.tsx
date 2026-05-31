@@ -4,14 +4,41 @@ import { useCallback, useEffect, useState } from "react";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import type { DropResult } from "@hello-pangea/dnd";
 import { Edit, GripVertical, Plus, Trash2 } from "lucide-react";
+import { z } from "zod";
 import { apiClient } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
-import { SubjectDialog } from "./SubjectDialog";
 import { StagesManager } from "./StagesManager";
+import { SubjectDialog } from "./SubjectDialog";
 
 export type Lesson = { id: string; title: string; description?: string | null; sortOrder: number; stageId: string };
 export type Stage = { id: string; title: string; sortOrder: number; subjectId: string; lessons: Lesson[] };
 export type Subject = { id: string; title: string; color: string; sortOrder: number; stages: Stage[] };
+
+const subjectsResponseSchema = z.array(
+  z.object({
+    id: z.string().uuid(),
+    title: z.string(),
+    color: z.string(),
+    sortOrder: z.number().int(),
+    stages: z.array(
+      z.object({
+        id: z.string().uuid(),
+        title: z.string(),
+        sortOrder: z.number().int(),
+        subjectId: z.string().uuid(),
+        lessons: z.array(
+          z.object({
+            id: z.string().uuid(),
+            title: z.string(),
+            description: z.string().nullable().optional(),
+            sortOrder: z.number().int(),
+            stageId: z.string().uuid(),
+          })
+        ),
+      })
+    ),
+  })
+);
 
 export function SubjectsManager() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -22,10 +49,15 @@ export function SubjectsManager() {
 
   const fetchSubjects = useCallback(async () => {
     setLoading(true);
-    const response = await apiClient<Subject[]>("/api/subjects", { token, parse: (value) => value as Subject[] });
+    const response = await apiClient<Subject[]>("/api/subjects", {
+      token,
+      parse: (value: unknown) => subjectsResponseSchema.parse(value),
+    });
+
     if (response.data) {
       setSubjects(response.data);
     }
+
     setLoading(false);
   }, [token]);
 
@@ -54,6 +86,7 @@ export function SubjectsManager() {
 
   const deleteSubject = async (id: string) => {
     if (!confirm("هل أنت متأكد من حذف هذه المادة؟ سيتم إخفاء كل المحاور والدروس المرتبطة بها.")) return;
+
     setSubjects((current) => current.filter((subject) => subject.id !== id));
     await apiClient(`/api/subjects/${id}`, { method: "DELETE", token });
   };
@@ -67,6 +100,7 @@ export function SubjectsManager() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">إدارة المواد التعليمية</h1>
         <button
+          type="button"
           onClick={() => setIsDialogOpen(true)}
           className="flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90"
         >
@@ -100,16 +134,23 @@ export function SubjectsManager() {
                         <div className="text-sm text-muted-foreground">{subject.stages.length} محور</div>
 
                         <div className="flex items-center gap-2">
-                          <button className="cursor-pointer rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-primary">
+                          <button
+                            type="button"
+                            className="cursor-pointer rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
+                            aria-label="تعديل المادة"
+                          >
                             <Edit className="h-4 w-4" />
                           </button>
                           <button
+                            type="button"
                             onClick={() => deleteSubject(subject.id)}
                             className="cursor-pointer rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                            aria-label="حذف المادة"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
                           <button
+                            type="button"
                             onClick={() => setExpandedId(expandedId === subject.id ? null : subject.id)}
                             className="mr-4 cursor-pointer rounded-full bg-primary/10 px-3 py-1 text-xs text-primary transition-colors hover:bg-primary/20"
                           >

@@ -2,20 +2,33 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { z } from "zod";
 import { apiClient } from "@/lib/api";
 import ZoomMeetingViewer from "@/components/shared/ZoomMeetingViewer";
 
+const liveParamsSchema = z.object({
+  roomId: z.string().uuid(),
+});
+
+const liveSignatureSchema = z.object({
+  zoomMeetingId: z.string().min(1),
+  zoomPassword: z.string(),
+  signature: z.string().min(1),
+  sdkKey: z.string().min(1),
+});
+
 export default function StudentLiveRoomPage() {
   const params = useParams();
-  const roomId = params.roomId as string;
-  const [sessionData, setSessionData] = useState<Record<string, string> | null>(null);
+  const parsedParams = liveParamsSchema.safeParse(params);
+  const roomId = parsedParams.success ? parsedParams.data.roomId : "";
+  const [sessionData, setSessionData] = useState<z.infer<typeof liveSignatureSchema> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadSignature() {
       try {
-        const res = await apiClient<Record<string, string>>(`/api/live/${roomId}/signature`, {
-           parse: (raw: unknown) => raw as Record<string, string>,
+        const res = await apiClient<z.infer<typeof liveSignatureSchema>>(`/api/live/${roomId}/signature`, {
+           parse: (raw: unknown) => liveSignatureSchema.parse(raw),
         });
 
         if (res.error) {
@@ -25,7 +38,7 @@ export default function StudentLiveRoomPage() {
 
         setSessionData(res.data);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Failed to load live session details.");
+        setError(err instanceof Error ? err.message : "فشل تحميل بيانات الحصة المباشرة.");
       }
     }
 
@@ -45,21 +58,21 @@ export default function StudentLiveRoomPage() {
   if (!sessionData) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading secure live session...</p>
+        <p className="text-muted-foreground">جاري تحميل الحصة المباشرة الآمنة...</p>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-neutral-950 p-6 flex flex-col items-center">
-      <h1 className="text-2xl font-bold text-white mb-6">Live Session</h1>
+      <h1 className="text-2xl font-bold text-white mb-6">الحصة المباشرة</h1>
       <ZoomMeetingViewer
         meetingNumber={sessionData.zoomMeetingId}
         password={sessionData.zoomPassword}
         signature={sessionData.signature}
         sdkKey={sessionData.sdkKey}
-        userName="Student" // Should be fetched from auth context
-        userEmail="student@example.com" // Should be fetched from auth context
+        userName="Student"
+        userEmail="student@example.com"
       />
     </div>
   );

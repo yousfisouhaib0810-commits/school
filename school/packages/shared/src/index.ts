@@ -23,6 +23,8 @@ export const RESERVED_SUBDOMAINS = [
   "help",
 ] as const;
 
+const RESERVED_SUBDOMAIN_SET = new Set<string>(RESERVED_SUBDOMAINS);
+
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
@@ -37,7 +39,7 @@ export const registerSchema = z.object({
     .min(3)
     .max(63)
     .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/)
-    .refine((value) => !RESERVED_SUBDOMAINS.includes(value as (typeof RESERVED_SUBDOMAINS)[number]), {
+    .refine((value) => !RESERVED_SUBDOMAIN_SET.has(value), {
       message: "Reserved subdomain",
     }),
 });

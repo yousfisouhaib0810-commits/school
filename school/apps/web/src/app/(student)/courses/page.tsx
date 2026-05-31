@@ -6,6 +6,7 @@ import { apiClient } from "@/lib/api";
 import { Loader2, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { z } from "zod";
 
 interface LessonDetails {
   id: string;
@@ -15,6 +16,16 @@ interface LessonDetails {
   sortOrder: number;
 }
 
+const lessonsResponseSchema = z.array(
+  z.object({
+    id: z.string().uuid(),
+    title: z.string(),
+    description: z.string().nullable(),
+    videoUid: z.string().nullable(),
+    sortOrder: z.number().int(),
+  })
+);
+
 export default function CoursesPage() {
   const [lessons, setLessons] = useState<LessonDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +34,7 @@ export default function CoursesPage() {
     async function loadData() {
       try {
         const res = await apiClient<LessonDetails[]>("/api/video", {
-          parse: (raw: unknown) => raw as LessonDetails[],
+          parse: (raw: unknown) => lessonsResponseSchema.parse(raw),
         });
         if (res.error) throw new Error(res.error);
         setLessons(res.data || []);

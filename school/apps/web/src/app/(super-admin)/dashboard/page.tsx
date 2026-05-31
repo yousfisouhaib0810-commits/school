@@ -5,6 +5,7 @@ import { apiClient } from "@/lib/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Loader2, ShieldAlert, Users, Building2, Store } from "lucide-react";
+import { z } from "zod";
 
 interface Tenant {
   id: string;
@@ -16,6 +17,23 @@ interface Tenant {
   usersCount?: number;
 }
 
+const tenantSchema = z.object({
+  id: z.string().uuid(),
+  subdomain: z.string(),
+  name: z.string(),
+  status: z.enum(["ACTIVE", "SUSPENDED"]),
+  plan: z.string(),
+  createdAt: z.string(),
+  usersCount: z.number().int().optional(),
+});
+
+const tenantsResponseSchema = z.array(tenantSchema);
+
+const tenantStatusResponseSchema = z.object({
+  success: z.boolean(),
+  status: z.enum(["ACTIVE", "SUSPENDED"]),
+});
+
 export default function SuperAdminDashboard() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,7 +42,7 @@ export default function SuperAdminDashboard() {
     setLoading(true);
     try {
       const res = await apiClient<Tenant[]>("/api/super-admin/tenants", {
-        parse: (raw: unknown) => raw as Tenant[],
+        parse: (raw: unknown) => tenantsResponseSchema.parse(raw),
       });
       if (res.error) throw new Error(res.error);
       setTenants(res.data || []);
@@ -48,7 +66,7 @@ export default function SuperAdminDashboard() {
       const res = await apiClient<{ success: boolean; status: string }>(`/api/super-admin/tenants/${tenantId}/status`, {
         method: "PATCH",
         body: JSON.stringify({ status: newStatus }),
-        parse: (raw: unknown) => raw as { success: boolean; status: string },
+        parse: (raw: unknown) => tenantStatusResponseSchema.parse(raw),
       });
 
       if (res.error) throw new Error(res.error);
