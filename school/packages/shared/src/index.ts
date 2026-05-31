@@ -132,6 +132,27 @@ export const videoProgressUpdateSchema = videoProgressSchema.omit({
   lessonId: true,
 });
 
+export const VIDEO_UPLOAD_MAX_BYTES = 2 * 1024 * 1024 * 1024;
+
+export const ALLOWED_VIDEO_MIME_TYPES = [
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/x-m4v",
+] as const;
+
+export const videoUploadRequestSchema = z.object({
+  fileName: z
+    .string()
+    .min(1)
+    .max(255)
+    .refine((value) => !/[\\/\0]/.test(value), {
+      message: "Invalid file name",
+    }),
+  fileSize: z.number().int().min(1).max(VIDEO_UPLOAD_MAX_BYTES),
+  mimeType: z.enum(ALLOWED_VIDEO_MIME_TYPES),
+});
+
 export const assignVideoSchema = z.object({
   lessonId: z.string().uuid(),
   videoUid: z.string().min(1),
@@ -193,6 +214,7 @@ export type StageInput = z.infer<typeof stageSchema>;
 export type LessonInput = z.infer<typeof lessonSchema>;
 export type VideoProgressInput = z.infer<typeof videoProgressSchema>;
 export type VideoProgressUpdateInput = z.infer<typeof videoProgressUpdateSchema>;
+export type VideoUploadRequestInput = z.infer<typeof videoUploadRequestSchema>;
 export type LandingPageBlock = z.infer<typeof landingPageBlockSchema>;
 export type LandingPageInput = z.infer<typeof landingPageSchema>;
 

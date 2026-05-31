@@ -1,8 +1,17 @@
 import { FastifyPluginAsync } from "fastify";
 import crypto from "node:crypto";
-import { lessonParamsSchema, videoProgressUpdateSchema, assignVideoSchema } from "@school/shared";
+import { SignJWT, importPKCS8 } from "jose";
+import {
+  lessonParamsSchema,
+  videoProgressUpdateSchema,
+  assignVideoSchema,
+  videoUploadRequestSchema,
+} from "@school/shared";
 import { z } from "zod";
 import { env } from "../../env.js";
+
+const MAX_VIDEO_DURATION_SECONDS = 3600 * 4;
+const PLAYBACK_TOKEN_TTL_SECONDS = 10 * 60;
 
 const playbackParamsSchema = z.object({
   uid: z.string().min(1).max(256).regex(/^[a-zA-Z0-9_-]+$/),
@@ -14,6 +23,47 @@ const cloudflareUploadResponseSchema = z.object({
     uid: z.string().min(1),
   }),
 });
+
+const playbackTokenResponseSchema = z.object({
+  result: z.object({
+    token: z.string().min(1),
+  }),
+});
+
+function isConfiguredSecret(value: string | undefined): value is string {
+  return Boolean(value && !value.toLowerCase().includes("placeholder"));
+}
+
+function decodeCloudflarePrivateKey(value: string): string {
+  const normalized = value.replace(/\\n/g, "\n").trim();
+  if (normalized.includes("BEGIN PRIVATE KEY")) {
+    return normalized;
+  }
+
+  return Buffer.from(normalized, "base64").toString("utf8").replace(/\\n/g, "\n").trim();
+}
+
+async function generateLocalPlaybackToken(input: {
+  uid: string;
+  userId: string;
+  tenantId: string;
+  signingKeyId: string;
+  privateKey: string;
+}): Promise<string> {
+  const privateKey = await importPKCS8(decodeCloudflarePrivateKey(input.privateKey), "RS256");
+  const expiresAt = Math.floor(Date.now() / 1000) + PLAYBACK_TOKEN_TTL_SECONDS;
+
+  return new SignJWT({
+    sub: input.uid,
+    kid: input.signingKeyId,
+    userId: input.userId,
+    tenantId: input.tenantId,
+    downloadable: false,
+  })
+    .setProtectedHeader({ alg: "RS256", kid: input.signingKeyId })
+    .setExpirationTime(expiresAt)
+    .sign(privateKey);
+}
 
 const videoRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get("/", {
@@ -114,6 +164,7 @@ const videoRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(403).send({ error: "Forbidden" });
     }
 
+    const uploadRequest = videoUploadRequestSchema.parse(request.body);
     const accountId = env.CLOUDFLARE_ACCOUNT_ID;
     const token = env.CLOUDFLARE_STREAM_TOKEN;
 
@@ -137,8 +188,15 @@ const videoRoutes: FastifyPluginAsync = async (fastify) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          maxDurationSeconds: 3600 * 4,
+          maxDurationSeconds: MAX_VIDEO_DURATION_SECONDS,
           requireSignedURLs: true,
+          meta: {
+            fileName: uploadRequest.fileName,
+            fileSize: String(uploadRequest.fileSize),
+            mimeType: uploadRequest.mimeType,
+            tenantId: request.tenantId,
+            uploadedBy: request.userId,
+          },
         }),
       });
     } catch (error) {
@@ -211,18 +269,78 @@ const videoRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const accountId = env.CLOUDFLARE_ACCOUNT_ID;
-    
+    const customerCode = env.CLOUDFLARE_STREAM_CUSTOMER_CODE ?? accountId;
+    const signingKeyId = env.CLOUDFLARE_STREAM_SIGNING_KEY_ID;
+    const signingPrivateKey = env.CLOUDFLARE_STREAM_SIGNING_PRIVATE_KEY;
+    const streamToken = env.CLOUDFLARE_STREAM_TOKEN;
+
+    if (!isConfiguredSecret(accountId) || !isConfiguredSecret(customerCode)) {
+      if (env.NODE_ENV === "production") {
+        return reply.status(503).send({ error: "Video playback service is not configured" });
+      }
+
+      const signedToken = `mock-signed-token-for-${uid}-${Date.now()}`;
+      return {
+        token: signedToken,
+        url: `https://mock.cloudflare.stream/${signedToken}/iframe`,
+      };
+    }
+
+    if (isConfiguredSecret(signingKeyId) && isConfiguredSecret(signingPrivateKey)) {
+      const signedToken = await generateLocalPlaybackToken({
+        uid,
+        userId: request.userId,
+        tenantId: request.tenantId,
+        signingKeyId,
+        privateKey: signingPrivateKey,
+      });
+
+      return {
+        token: signedToken,
+        url: `https://customer-${customerCode}.cloudflarestream.com/${signedToken}/iframe`,
+      };
+    }
+
     if (env.NODE_ENV === "production") {
       return reply.status(503).send({ error: "Video playback signing is not configured" });
     }
 
+    if (isConfiguredSecret(streamToken)) {
+      let response;
+      try {
+        response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/${uid}/token`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${streamToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            exp: Math.floor(Date.now() / 1000) + PLAYBACK_TOKEN_TTL_SECONDS,
+            downloadable: false,
+          }),
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to fetch playback token from Cloudflare API");
+        return reply.status(500).send({ error: "Could not generate playback token" });
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        request.log.error({ errorText }, "Cloudflare playback token API error");
+        return reply.status(500).send({ error: "Could not generate playback token" });
+      }
+
+      const data = playbackTokenResponseSchema.parse(await response.json());
+      return {
+        token: data.result.token,
+        url: `https://customer-${customerCode}.cloudflarestream.com/${data.result.token}/iframe`,
+      };
+    }
+
     const signedToken = `mock-signed-token-for-${uid}-${Date.now()}`;
-    
-    return { 
+    return {
       token: signedToken,
-      url: accountId && !accountId.includes("placeholder")
-        ? `https://customer-${accountId}.cloudflarestream.com/${signedToken}/iframe`
-        : `https://mock.cloudflare.stream/${signedToken}/iframe`
+      url: `https://mock.cloudflare.stream/${signedToken}/iframe`,
     };
   });
 };

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { z } from "zod";
 import { apiClient } from "@/lib/api";
 import { VideoPlayer } from "@/components/shared/VideoPlayer";
 import { Loader2 } from "lucide-react";
@@ -9,22 +10,27 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-interface LessonDetails {
-  id: string;
-  title: string;
-  description: string | null;
-  videoUid: string | null;
-}
+const lessonDetailsSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  description: z.string().nullable(),
+  videoUid: z.string().nullable(),
+});
 
-interface PlaybackTokenResponse {
-  token: string;
-  url: string;
-}
+const lessonsResponseSchema = z.array(lessonDetailsSchema);
 
-interface ProgressResponse {
-  secondsWatched: number;
-  isCompleted: boolean;
-}
+const playbackTokenResponseSchema = z.object({
+  token: z.string().min(1),
+  url: z.string().url(),
+});
+
+const progressResponseSchema = z.object({
+  secondsWatched: z.number().int().min(0),
+  isCompleted: z.boolean(),
+});
+
+type LessonDetails = z.infer<typeof lessonDetailsSchema>;
+type ProgressResponse = z.infer<typeof progressResponseSchema>;
 
 export default function LessonPage() {
   const params = useParams();
@@ -38,34 +44,31 @@ export default function LessonPage() {
   useEffect(() => {
     async function fetchLessonAndToken() {
       try {
-        // Find the lesson details from the master list (filtered securely on the API level mapping to Tenant)
         const lessonsRes = await apiClient<LessonDetails[]>("/api/video", {
-          parse: (raw: unknown) => raw as LessonDetails[]
+          parse: (raw: unknown) => lessonsResponseSchema.parse(raw)
         });
 
         if (lessonsRes.error || !lessonsRes.data) {
-          throw new Error("Failed to load lesson");
+          throw new Error("فشل تحميل الدرس");
         }
 
         const foundLesson = lessonsRes.data.find(l => l.id === lessonId);
         if (!foundLesson) {
-           throw new Error("Lesson not found");
+           throw new Error("الدرس غير موجود");
         }
 
         setLesson(foundLesson);
 
-        // Fetch completion progress to populate the boolean flag.
         const progressRes = await apiClient<ProgressResponse>(`/api/video/${lessonId}/progress`, {
-           parse: (raw: unknown) => raw as ProgressResponse
+           parse: (raw: unknown) => progressResponseSchema.parse(raw)
         });
         if (!progressRes.error && progressRes.data) {
            setInitialProgress(progressRes.data);
         }
 
-        // If video is assigned, query Cloudflare (or mock API endpoint) to retrieve the DRM token.
         if (foundLesson.videoUid) {
-           const tokenRes = await apiClient<PlaybackTokenResponse>(`/api/video/${foundLesson.videoUid}/playback-token`, {
-             parse: (raw: unknown) => raw as PlaybackTokenResponse
+           const tokenRes = await apiClient<z.infer<typeof playbackTokenResponseSchema>>(`/api/video/${foundLesson.videoUid}/playback-token`, {
+             parse: (raw: unknown) => playbackTokenResponseSchema.parse(raw)
            });
            
            if (tokenRes.data?.url) {
@@ -73,7 +76,7 @@ export default function LessonPage() {
            }
         }
       } catch (err: unknown) {
-        toast.error(err instanceof Error ? err.message : "Error loading lesson data.");
+        toast.error(err instanceof Error ? err.message : "تعذر تحميل بيانات الدرس");
       } finally {
         setLoading(false);
       }
@@ -95,9 +98,9 @@ export default function LessonPage() {
   if (!lesson) {
     return (
       <div className="p-12 text-center flex flex-col items-center">
-        <h2 className="text-xl font-bold mb-4">Lesson not found.</h2>
+        <h2 className="text-xl font-bold mb-4">الدرس غير موجود.</h2>
         <Link href="/courses">
-           <Button variant="outline">Return to Courses</Button>
+           <Button variant="outline">العودة إلى الدروس</Button>
         </Link>
       </div>
     );
@@ -107,7 +110,7 @@ export default function LessonPage() {
     <div className="container py-8 max-w-4xl mx-auto space-y-6">
       <div>
         <Link href="/courses" className="text-primary hover:underline text-sm font-medium mb-4 inline-block">
-          &larr; Back to Courses
+          &larr; العودة إلى الدروس
         </Link>
         <h1 className="text-3xl font-bold mb-2">{lesson.title}</h1>
         {lesson.description && <p className="text-muted-foreground">{lesson.description}</p>}
@@ -115,7 +118,7 @@ export default function LessonPage() {
 
       {!lesson.videoUid ? (
         <div className="bg-muted px-12 py-24 text-center rounded-xl border border-dashed border-muted-foreground/30">
-          <p className="text-muted-foreground">No video has been assigned to this lesson yet.</p>
+          <p className="text-muted-foreground">لم يتم ربط فيديو بهذا الدرس بعد.</p>
         </div>
       ) : playbackUrl ? (
         <VideoPlayer 
@@ -126,8 +129,8 @@ export default function LessonPage() {
         />
       ) : (
         <div className="bg-destructive/10 text-destructive px-12 py-24 text-center rounded-xl border border-destructive">
-          <p className="font-semibold text-lg">Failed to acquire secure playback token.</p>
-          <p className="text-sm mt-2 opacity-80">This video might be deactivated or your subscription has expired.</p>
+          <p className="font-semibold text-lg">فشل الحصول على رابط التشغيل الآمن.</p>
+          <p className="text-sm mt-2 opacity-80">قد يكون الفيديو غير مفعّل أو أن اشتراكك غير صالح.</p>
         </div>
       )}
     </div>

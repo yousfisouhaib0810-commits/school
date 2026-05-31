@@ -50,11 +50,14 @@ Evidence:
 - Cloudflare direct upload endpoint exists.
 - Production no longer returns mock upload URLs when Cloudflare is not configured.
 - Playback token endpoint verifies tenant ownership before returning data.
+- Upload URL requests now validate file name, MIME type, and size through the shared Zod schema.
+- Production playback supports Cloudflare Stream signed iframe URLs when signing key env vars are configured.
+- Student playback now renders the signed Cloudflare iframe URL instead of treating it as a raw video file.
 - Watermark UI exists.
 
 Remaining:
-- Implement real Cloudflare signed playback token generation in production.
-- Add file size/type validation before requesting upload URLs.
+- Configure `CLOUDFLARE_STREAM_SIGNING_KEY_ID`, `CLOUDFLARE_STREAM_SIGNING_PRIVATE_KEY`, and Cloudflare Stream account/customer settings in Render.
+- Add an automated integration test for upload metadata validation and tenant-scoped playback token issuance.
 
 ## Phase 4 - Live Sessions
 
