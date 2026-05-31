@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import type { DropResult } from "@hello-pangea/dnd";
-import { Edit, GripVertical, Plus, Trash2 } from "lucide-react";
+import { Edit, GripVertical, Plus, Trash2, X } from "lucide-react";
 import { z } from "zod";
 import { apiClient } from "@/lib/api";
 import { StagesManager } from "./StagesManager";
@@ -44,6 +44,8 @@ export function SubjectsManager() {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchSubjects = useCallback(async () => {
     setLoading(true);
@@ -53,6 +55,10 @@ export function SubjectsManager() {
 
     if (response.data) {
       setSubjects(response.data);
+    }
+
+    if (response.error) {
+      setError(response.error);
     }
 
     setLoading(false);
@@ -81,10 +87,21 @@ export function SubjectsManager() {
   };
 
   const deleteSubject = async (id: string) => {
-    if (!confirm("هل أنت متأكد من حذف هذه المادة؟ سيتم إخفاء كل المحاور والدروس المرتبطة بها.")) return;
+    if (pendingDeleteId !== id) {
+      setPendingDeleteId(id);
+      return;
+    }
 
+    setError(null);
     setSubjects((current) => current.filter((subject) => subject.id !== id));
-    await apiClient(`/api/subjects/${id}`, { method: "DELETE" });
+    const response = await apiClient(`/api/subjects/${id}`, { method: "DELETE" });
+    if (response.error) {
+      setError(response.error);
+      await fetchSubjects();
+      return;
+    }
+
+    setPendingDeleteId(null);
   };
 
   if (loading) {
@@ -92,7 +109,7 @@ export function SubjectsManager() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">إدارة المواد التعليمية</h1>
         <button
@@ -104,6 +121,8 @@ export function SubjectsManager() {
           إضافة مادة جديدة
         </button>
       </div>
+
+      {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="subjects-list">
@@ -137,13 +156,27 @@ export function SubjectsManager() {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
+                          {pendingDeleteId === subject.id && (
+                            <button
+                              type="button"
+                              onClick={() => setPendingDeleteId(null)}
+                              className="cursor-pointer rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                              aria-label="إلغاء الحذف"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          )}
                           <button
                             type="button"
-                            onClick={() => deleteSubject(subject.id)}
+                            onClick={() => void deleteSubject(subject.id)}
                             className="cursor-pointer rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                            aria-label="حذف المادة"
+                            aria-label={pendingDeleteId === subject.id ? "تأكيد حذف المادة" : "حذف المادة"}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            {pendingDeleteId === subject.id ? (
+                              <span className="px-1 text-xs font-semibold">تأكيد</span>
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
                           </button>
                           <button
                             type="button"
@@ -155,13 +188,23 @@ export function SubjectsManager() {
                         </div>
                       </div>
                       {expandedId === subject.id && (
-                        <StagesManager subjectId={subject.id} initialStages={subject.stages} onUpdate={fetchSubjects} />
+                        <StagesManager
+                          key={`${subject.id}-${subject.stages.map((stage) => `${stage.id}:${stage.sortOrder}:${stage.lessons.length}`).join("|")}`}
+                          subjectId={subject.id}
+                          initialStages={subject.stages}
+                          onUpdate={fetchSubjects}
+                        />
                       )}
                     </div>
                   )}
                 </Draggable>
               ))}
               {provided.placeholder}
+              {subjects.length === 0 && (
+                <div className="rounded-xl border border-dashed border-border bg-white p-8 text-center text-muted-foreground">
+                  لا توجد مواد بعد.
+                </div>
+              )}
             </div>
           )}
         </Droppable>

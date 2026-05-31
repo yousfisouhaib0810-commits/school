@@ -43,9 +43,9 @@ Evidence:
 - Subject/stage/lesson CRUD exists.
 - Drag-and-drop reorder endpoints were fixed so `/reorder` is not shadowed by `/:id`.
 - Soft delete is now used for subject/stage/lesson deletion.
+- Subject, stage, and lesson management now use inline forms and in-app delete confirmation instead of browser `prompt`/`confirm`.
 
 Remaining:
-- Replace prompt/confirm-based nested editors with production forms and validation feedback.
 - Add focused tests for tenant isolation and reorder behaviour.
 
 ## Phase 3 - Protected Video
