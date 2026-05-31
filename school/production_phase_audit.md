@@ -128,10 +128,11 @@ Status: partially implemented.
 Evidence:
 - Super-admin tenant list and suspend/reactivate controls exist.
 - API checks `SUPER_ADMIN` role.
+- Tenant status changes are now written with tenant-scoped audit log records inside the same transaction.
 
 Remaining:
 - The secret admin entry path and operational login flow need hardening.
-- Audit logging for admin actions is missing.
+- Add an audit-log viewer and broaden logging to all sensitive admin actions.
 
 ## Phase 9 - Protection, Performance, Quality
 

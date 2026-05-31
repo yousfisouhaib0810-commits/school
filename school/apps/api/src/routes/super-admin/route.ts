@@ -58,16 +58,45 @@ const superAdminRoutes: FastifyPluginAsync = async (fastify) => {
     if (!body.success) return reply.status(400).send({ error: "Invalid status body" });
 
     try {
-      const updated = await fastify.prisma.tenant.update({
-        where: { id: params.data.tenantId },
-        data: { status: body.data.status },
+      const updated = await fastify.prisma.$transaction(async (tx) => {
+        const tenant = await tx.tenant.findUnique({
+          where: { id: params.data.tenantId },
+          select: { id: true, status: true },
+        });
+
+        if (!tenant) {
+          return null;
+        }
+
+        const updatedTenant = await tx.tenant.update({
+          where: { id: tenant.id },
+          data: { status: body.data.status },
+        });
+
+        await tx.auditLog.create({
+          data: {
+            tenantId: tenant.id,
+            actorUserId: request.userId,
+            action: "TENANT_STATUS_UPDATED",
+            entityType: "TENANT",
+            entityId: tenant.id,
+            metadata: {
+              previousStatus: tenant.status,
+              newStatus: updatedTenant.status,
+            },
+          },
+        });
+
+        return updatedTenant;
       });
+
+      if (!updated) {
+        return reply.status(404).send({ error: "Tenant not found" });
+      }
 
       return reply.send({ success: true, status: updated.status });
     } catch (err: unknown) {
-      if (err instanceof Error && err.message.includes("Record to update not found")) {
-        return reply.status(404).send({ error: "Tenant not found" });
-      }
+      request.log.error({ err }, "Failed to update tenant status");
       return reply.status(500).send({ error: "Internal server error" });
     }
   });
