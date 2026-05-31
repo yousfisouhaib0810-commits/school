@@ -7,7 +7,6 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import * as z from "zod";
 import { subjectSchema } from "@school/shared";
 import { apiClient } from "@/lib/api";
-import { useAuthStore } from "@/lib/store";
 
 type SubjectFormInput = z.input<typeof subjectSchema>;
 type SubjectFormValues = z.output<typeof subjectSchema>;
@@ -20,7 +19,6 @@ export function SubjectDialog({
   onSuccess: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
-  const token = useAuthStore((state) => state.accessToken) ?? undefined;
 
   const {
     register,
@@ -38,7 +36,6 @@ export function SubjectDialog({
     setError(null);
     const res = await apiClient("/api/subjects", {
       method: "POST",
-      token,
       body: JSON.stringify(data),
     });
 

@@ -6,7 +6,6 @@ import type { DropResult } from "@hello-pangea/dnd";
 import { Edit, GripVertical, Plus, Trash2 } from "lucide-react";
 import { z } from "zod";
 import { apiClient } from "@/lib/api";
-import { useAuthStore } from "@/lib/store";
 import { StagesManager } from "./StagesManager";
 import { SubjectDialog } from "./SubjectDialog";
 
@@ -45,12 +44,10 @@ export function SubjectsManager() {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const token = useAuthStore((state) => state.accessToken) ?? undefined;
 
   const fetchSubjects = useCallback(async () => {
     setLoading(true);
     const response = await apiClient<Subject[]>("/api/subjects", {
-      token,
       parse: (value: unknown) => subjectsResponseSchema.parse(value),
     });
 
@@ -59,7 +56,7 @@ export function SubjectsManager() {
     }
 
     setLoading(false);
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -79,7 +76,6 @@ export function SubjectsManager() {
     setSubjects(nextSubjects);
     await apiClient("/api/subjects/reorder", {
       method: "PATCH",
-      token,
       body: JSON.stringify(nextSubjects.map((subject) => ({ id: subject.id, sortOrder: subject.sortOrder }))),
     });
   };
@@ -88,7 +84,7 @@ export function SubjectsManager() {
     if (!confirm("هل أنت متأكد من حذف هذه المادة؟ سيتم إخفاء كل المحاور والدروس المرتبطة بها.")) return;
 
     setSubjects((current) => current.filter((subject) => subject.id !== id));
-    await apiClient(`/api/subjects/${id}`, { method: "DELETE", token });
+    await apiClient(`/api/subjects/${id}`, { method: "DELETE" });
   };
 
   if (loading) {

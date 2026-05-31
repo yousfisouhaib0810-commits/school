@@ -56,10 +56,10 @@ export const authUserSchema = z.object({
   role: tokenPayloadSchema.shape.role,
 });
 
-export const authLoginResponseSchema = z.object({
-  accessToken: z.string().min(1),
+export const authSessionResponseSchema = z.object({
   user: authUserSchema,
 });
+export const authLoginResponseSchema = authSessionResponseSchema;
 
 export const authRegisterResponseSchema = z.object({
   requiresEmailVerification: z.literal(true),
@@ -81,7 +81,7 @@ export const resendEmailVerificationSchema = z.object({
   subdomain: registerSchema.shape.subdomain,
 });
 
-export const authVerifyEmailResponseSchema = authLoginResponseSchema.extend({
+export const authVerifyEmailResponseSchema = authSessionResponseSchema.extend({
   tenant: z.object({
     id: z.string().uuid(),
     subdomain: registerSchema.shape.subdomain,

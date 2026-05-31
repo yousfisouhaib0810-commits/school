@@ -6,7 +6,7 @@ import { authVerifyEmailResponseSchema } from "@school/shared";
 import type { AuthVerifyEmailResponse } from "@school/shared";
 
 import { apiClient } from "@/lib/api";
-import { setAccessToken, setTenantSubdomain } from "@/lib/auth";
+import { clearAccessToken, setTenantSubdomain } from "@/lib/auth";
 import { useAuthStore } from "@/lib/store";
 
 function VerifyEmailForm() {
@@ -38,9 +38,9 @@ function VerifyEmailForm() {
       return;
     }
 
-    setAccessToken(data.accessToken);
+    clearAccessToken();
     setTenantSubdomain(data.tenant.subdomain);
-    login(data.user, data.accessToken);
+    login(data.user);
     router.push("/");
   }
 

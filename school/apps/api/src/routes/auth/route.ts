@@ -77,7 +77,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       reply.setCookie("accessToken", accessToken, ACCESS_TOKEN_COOKIE_OPTIONS);
       reply.setCookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
 
-      return { accessToken, user: { id: user.id, email: user.email, role: user.role } };
+      return { user: { id: user.id, email: user.email, role: user.role } };
     }
   );
 
@@ -211,7 +211,6 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       reply.setCookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
 
       return {
-        accessToken,
         user: { id: user.id, email: user.email, role: user.role },
         tenant: { id: tenant.id, subdomain: body.subdomain },
       };
@@ -291,7 +290,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     reply.setCookie("accessToken", newAccessToken, ACCESS_TOKEN_COOKIE_OPTIONS);
     reply.setCookie("refreshToken", newRefreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
 
-    return { accessToken: newAccessToken };
+    return { success: true };
   });
 
   fastify.post(

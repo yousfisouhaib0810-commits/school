@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { decodeTokenPayload } from "@/lib/auth";
 import { apiClient } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
 
@@ -17,15 +16,10 @@ export function VideoPlayer({ uid }: { uid: string }) {
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const token = useAuthStore((state) => state.accessToken) ?? undefined;
+  const user = useAuthStore((state) => state.user);
   const viewerLabel = useMemo(() => {
-    if (!token) {
-      return "viewer-secured";
-    }
-
-    const payload = decodeTokenPayload(token);
-    return payload?.sub && typeof payload.sub === "string" ? `${payload.sub.slice(0, 8)}...` : "viewer-secured";
-  }, [token]);
+    return user?.email ? user.email : "viewer-secured";
+  }, [user?.email]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -45,7 +39,6 @@ export function VideoPlayer({ uid }: { uid: string }) {
       }
 
       const res = await apiClient<{ token: string; url: string }>(`/api/video/${uid}/playback-token`, {
-        token,
         parse: (raw: unknown) => playbackTokenResponseSchema.parse(raw),
       });
 
@@ -60,7 +53,7 @@ export function VideoPlayer({ uid }: { uid: string }) {
     }
 
     void fetchSignedUrl();
-  }, [uid, token]);
+  }, [uid]);
 
   if (error) {
     return (

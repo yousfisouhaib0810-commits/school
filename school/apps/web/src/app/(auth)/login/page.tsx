@@ -6,7 +6,7 @@ import { authLoginResponseSchema } from "@school/shared";
 import type { AuthLoginResponse } from "@school/shared";
 
 import { apiClient } from "@/lib/api";
-import { setAccessToken, setTenantSubdomain } from "@/lib/auth";
+import { clearAccessToken, setTenantSubdomain } from "@/lib/auth";
 import { useAuthStore } from "@/lib/store";
 
 export default function LoginPage() {
@@ -37,9 +37,9 @@ export default function LoginPage() {
       return;
     }
 
-    setAccessToken(data.accessToken);
+    clearAccessToken();
     setTenantSubdomain(subdomain);
-    login(data.user, data.accessToken);
+    login(data.user);
     router.push("/");
   }
 

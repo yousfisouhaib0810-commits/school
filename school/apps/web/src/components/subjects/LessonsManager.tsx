@@ -5,7 +5,6 @@ import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import type { DropResult } from "@hello-pangea/dnd";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { apiClient } from "@/lib/api";
-import { useAuthStore } from "@/lib/store";
 import type { Lesson } from "./SubjectsManager";
 
 export function LessonsManager({
@@ -18,7 +17,6 @@ export function LessonsManager({
   onUpdate: () => void;
 }) {
   const [lessons, setLessons] = useState(initialLessons);
-  const token = useAuthStore((state) => state.accessToken) ?? undefined;
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
@@ -31,7 +29,6 @@ export function LessonsManager({
     setLessons(nextLessons);
     await apiClient("/api/lessons/reorder", {
       method: "PATCH",
-      token,
       body: JSON.stringify(nextLessons.map((lesson) => ({ id: lesson.id, sortOrder: lesson.sortOrder }))),
     });
     onUpdate();
@@ -43,7 +40,6 @@ export function LessonsManager({
 
     await apiClient("/api/lessons", {
       method: "POST",
-      token,
       body: JSON.stringify({ title, stageId }),
     });
     onUpdate();
@@ -51,7 +47,7 @@ export function LessonsManager({
 
   const handleDelete = async (id: string) => {
     if (!confirm("تأكيد حذف هذا الدرس؟")) return;
-    await apiClient(`/api/lessons/${id}`, { method: "DELETE", token });
+    await apiClient(`/api/lessons/${id}`, { method: "DELETE" });
     onUpdate();
   };
 

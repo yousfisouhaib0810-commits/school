@@ -5,7 +5,6 @@ import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import type { DropResult } from "@hello-pangea/dnd";
 import { ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from "lucide-react";
 import { apiClient } from "@/lib/api";
-import { useAuthStore } from "@/lib/store";
 import type { Stage } from "./SubjectsManager";
 import { LessonsManager } from "./LessonsManager";
 
@@ -20,7 +19,6 @@ export function StagesManager({
 }) {
   const [stages, setStages] = useState(initialStages);
   const [expandedStage, setExpandedStage] = useState<string | null>(null);
-  const token = useAuthStore((state) => state.accessToken) ?? undefined;
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
@@ -33,7 +31,6 @@ export function StagesManager({
     setStages(nextStages);
     await apiClient("/api/stages/reorder", {
       method: "PATCH",
-      token,
       body: JSON.stringify(nextStages.map((stage) => ({ id: stage.id, sortOrder: stage.sortOrder }))),
     });
     onUpdate();
@@ -45,7 +42,6 @@ export function StagesManager({
 
     await apiClient("/api/stages", {
       method: "POST",
-      token,
       body: JSON.stringify({ title, subjectId }),
     });
     onUpdate();
@@ -53,7 +49,7 @@ export function StagesManager({
 
   const handleDelete = async (id: string) => {
     if (!confirm("تأكيد حذف هذا المحور؟ سيتم إخفاء الدروس المرتبطة به.")) return;
-    await apiClient(`/api/stages/${id}`, { method: "DELETE", token });
+    await apiClient(`/api/stages/${id}`, { method: "DELETE" });
     onUpdate();
   };
 

@@ -9,7 +9,6 @@ import {
   videoUploadRequestSchema,
 } from "@school/shared";
 import { apiClient } from "@/lib/api";
-import { useAuthStore } from "@/lib/store";
 
 const uploadUrlResponseSchema = z.object({
   uploadURL: z.string().url(),
@@ -30,7 +29,6 @@ export function VideoUploader({
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const token = useAuthStore((state) => state.accessToken) ?? undefined;
 
   const validateSelectedFile = (selectedFile: File) =>
     videoUploadRequestSchema.safeParse({
@@ -60,7 +58,6 @@ export function VideoUploader({
   const assignVideoToLesson = async (uid: string) => {
     const res = await apiClient("/api/video/assign", {
       method: "PATCH",
-      token,
       body: JSON.stringify({ lessonId, videoUid: uid }),
     });
 
@@ -95,7 +92,6 @@ export function VideoUploader({
 
       const { data, error: apiError } = await apiClient<{ uploadURL: string; uid: string }>("/api/video/upload-url", {
         method: "POST",
-        token,
         body: JSON.stringify(uploadRequest),
         parse: (raw: unknown) => uploadUrlResponseSchema.parse(raw),
       });
