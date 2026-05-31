@@ -93,11 +93,12 @@ Evidence:
 - Subscription writes are tenant-scoped.
 - Chérgily webhook processing is now idempotent through tenant-scoped `PaymentEvent` records.
 - Successful Chérgily checkout webhooks update both the subscription and the tenant plan in one transaction.
+- Automated API tests now verify invalid webhook signatures are rejected without writes and duplicate Chérgily events are processed once.
 
 Remaining:
 - Stripe is not implemented.
 - CIB/Edahabia integration is not implemented.
-- Add automated webhook integration tests and gateway-specific payment provider tests.
+- Add checkout-route tests and gateway-specific tests for Stripe and CIB/Edahabia once those providers are implemented.
 
 ## Phase 6 - Landing Page Builder
 
