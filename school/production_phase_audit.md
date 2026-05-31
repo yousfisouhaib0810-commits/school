@@ -67,10 +67,10 @@ Evidence:
 - Student playback now renders the signed Cloudflare iframe URL instead of treating it as a raw video file.
 - Watermark UI exists.
 - Automated API tests now verify upload metadata validation and tenant-scoped playback token issuance.
+- Automated API tests now verify the Cloudflare-configured signed playback path emits a user- and tenant-bound non-downloadable RS256 token and iframe URL.
 
 Remaining:
 - Configure `CLOUDFLARE_STREAM_SIGNING_KEY_ID`, `CLOUDFLARE_STREAM_SIGNING_PRIVATE_KEY`, and Cloudflare Stream account/customer settings in Render.
-- Add a Cloudflare-configured integration test for the signed production playback URL path.
 
 ## Phase 4 - Live Sessions
 
@@ -157,6 +157,7 @@ Evidence:
 - Automated API security tests cover CSRF token validation, tamper rejection, request-level enforcement, and the intended webhook exemption.
 - Auth tenant-isolation tests cover login lookup and session bootstrap tenant filters.
 - Teacher dashboard API tests cover CRUD, soft-delete, reorder, tenant ownership checks, and lesson cache invalidation.
+- Cloudflare playback signing tests verify configured signed iframe URLs include user and tenant binding.
 - Tenant middleware tests now verify `/api/readiness` is public while tenant-scoped routes still reject missing tenant headers.
 
 Remaining:
