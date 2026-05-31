@@ -6,15 +6,15 @@ import { Plan } from "@school/shared";
 const CHARGILY_SECRET_KEY = process.env.CHARGILY_SECRET_KEY || "test_sk_mock";
 
 export const chargilyWebhookRoute: FastifyPluginAsync = async (fastify) => {
-  // Capture raw body for signature verification
+  // Capture raw body as buffer for signature verification (Fastify 5 requires "buffer")
   fastify.addContentTypeParser(
     "application/json",
-    { parseAs: "string" },
-    function (req, body: string, done) {
+    { parseAs: "buffer" },
+    function (req, body: Buffer, done) {
       try {
-        const json = JSON.parse(body);
-        // We attach raw body to the request context safely
-        done(null, { raw: body, parsed: json });
+        const rawBody = body.toString("utf8");
+        const json = JSON.parse(rawBody);
+        done(null, { raw: rawBody, parsed: json });
       } catch (err: unknown) {
         done(err as Error, undefined);
       }
