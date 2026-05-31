@@ -19,8 +19,24 @@ import {
   verifyEmailCode,
 } from "../../services/email-verification.js";
 import { isEmailServiceConfigured } from "../../services/email.js";
+import { createCsrfToken } from "../../lib/csrf.js";
+import { env } from "../../env.js";
 
 const authRoutes: FastifyPluginAsync = async (fastify) => {
+  fastify.get("/csrf", async (_request, reply) => {
+    const token = createCsrfToken();
+
+    reply.setCookie("csrfToken", token, {
+      path: "/",
+      httpOnly: false,
+      secure: env.NODE_ENV === "production",
+      sameSite: env.NODE_ENV === "production" ? "none" : "strict",
+      maxAge: 60 * 60,
+    });
+
+    return { token };
+  });
+
   fastify.post(
     "/login",
     {

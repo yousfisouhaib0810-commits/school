@@ -4,6 +4,9 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   (process.env.NODE_ENV === "development" ? "http://api.localhost:4000" : "");
 
+const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+let csrfToken: string | null = null;
+
 interface ApiOptions<T> extends RequestInit {
   token?: string;
   tenantSubdomain?: string;
@@ -23,6 +26,36 @@ function getErrorMessage(data: unknown): string | null {
 
   const { error } = data;
   return typeof error === "string" ? error : null;
+}
+
+function parseCsrfToken(data: unknown): string | null {
+  if (typeof data !== "object" || data === null || !("token" in data)) {
+    return null;
+  }
+
+  return typeof data.token === "string" ? data.token : null;
+}
+
+async function getCsrfToken(): Promise<string | null> {
+  if (csrfToken) {
+    return csrfToken;
+  }
+
+  if (!API_BASE_URL) {
+    return null;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/auth/csrf`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  csrfToken = parseCsrfToken(await response.json().catch(() => null));
+  return csrfToken;
 }
 
 export async function apiClient(
@@ -65,6 +98,14 @@ export async function apiClient<T>(
         error: "API URL is not configured",
         status: 0,
       };
+    }
+
+    const method = (rest.method ?? "GET").toUpperCase();
+    if (UNSAFE_METHODS.has(method)) {
+      const tokenValue = await getCsrfToken();
+      if (tokenValue) {
+        headers.set("X-CSRF-Token", tokenValue);
+      }
     }
 
     const response = await fetch(`${API_BASE_URL}${path}`, {

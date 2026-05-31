@@ -22,12 +22,13 @@ Evidence:
 - Argon2 password hashing is used.
 - JWT secrets are required and placeholder secrets are rejected in production.
 - Refresh and access tokens are now also set in httpOnly cookies.
+- Cross-site production cookies are now paired with a signed CSRF token on state-changing API requests.
 - Tenant routes include app-level `tenantId` filters and RLS policies exist.
 - Auth routes are rate-limited.
 
 Remaining:
 - Complete session bootstrap UX without exposing access tokens in API responses.
-- Add a CSRF token layer if production keeps Vercel and Render as separate sites.
+- Add focused automated tests for CSRF rejection/acceptance and tenant isolation.
 
 ## Phase 2 - Teacher Dashboard
 
