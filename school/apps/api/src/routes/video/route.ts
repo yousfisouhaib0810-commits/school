@@ -9,6 +9,7 @@ import {
 } from "@school/shared";
 import { z } from "zod";
 import { env } from "../../env.js";
+import { canAccessPaidTenantContent } from "../../services/subscription-access.js";
 
 const MAX_VIDEO_DURATION_SECONDS = 3600 * 4;
 const PLAYBACK_TOKEN_TTL_SECONDS = 10 * 60;
@@ -117,6 +118,16 @@ const videoRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.put("/:lessonId/progress", {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
+    const canAccess = await canAccessPaidTenantContent({
+      prisma: fastify.prisma,
+      tenantId: request.tenantId,
+      userRole: request.userRole,
+    });
+
+    if (!canAccess) {
+      return reply.status(402).send({ error: "Active subscription required" });
+    }
+
     const { lessonId } = lessonParamsSchema.parse(request.params);
     const body = videoProgressUpdateSchema.parse(request.body);
 
@@ -253,6 +264,15 @@ const videoRoutes: FastifyPluginAsync = async (fastify) => {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
     const { uid } = playbackParamsSchema.parse(request.params);
+    const canAccess = await canAccessPaidTenantContent({
+      prisma: fastify.prisma,
+      tenantId: request.tenantId,
+      userRole: request.userRole,
+    });
+
+    if (!canAccess) {
+      return reply.status(402).send({ error: "Active subscription required" });
+    }
     
     // Security Rule: Enforce tenant isolation and ownership before granting token
     const lesson = await fastify.prisma.lesson.findFirst({

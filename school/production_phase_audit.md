@@ -72,10 +72,10 @@ Evidence:
 - Zoom S2S meeting creation and SDK signature endpoints exist.
 - Zoom config is now environment-driven and returns 503 when missing.
 - Tenant filters and pagination limits are applied.
+- Student live-session signatures now require a paid active tenant plan; staff roles remain allowed for hosting/admin workflows.
 
 Remaining:
 - The original project requirement mentions Jitsi, while current implementation uses Zoom. This needs a product decision.
-- Gate student access by active subscription.
 
 ## Phase 5 - Payments
 
@@ -116,10 +116,10 @@ Status: partially implemented.
 Evidence:
 - Course listing and lesson playback pages exist.
 - Progress endpoints exist and cache invalidation is used for lesson changes.
+- Student video playback tokens and progress updates now require a paid active tenant plan.
 
 Remaining:
-- Subscription gating for paid content and live sessions is incomplete.
-- Student UX needs stronger loading/error states and session bootstrap.
+- Student UX needs stronger loading/error states.
 
 ## Phase 8 - Super Admin
 

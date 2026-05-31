@@ -4,6 +4,7 @@ import { liveSessionSchema } from "@school/shared";
 import axios from "axios";
 import { KJUR } from "jsrsasign";
 import { env } from "../../env.js";
+import { canAccessPaidTenantContent } from "../../services/subscription-access.js";
 
 const meetingParamsSchema = z.object({ id: z.string().uuid() });
 const zoomTokenResponseSchema = z.object({ access_token: z.string().min(1) });
@@ -152,6 +153,16 @@ const liveRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const isHost = request.userRole === "ADMIN" || request.userRole === "TEACHER" || request.userRole === "SUPER_ADMIN";
+      const canAccess = await canAccessPaidTenantContent({
+        prisma: fastify.prisma,
+        tenantId: request.tenantId,
+        userRole: request.userRole,
+      });
+
+      if (!canAccess) {
+        return reply.status(402).send({ error: "Active subscription required" });
+      }
+
       const signature = generateSignature(session.zoomMeetingId, isHost ? 1 : 0);
 
       return {
