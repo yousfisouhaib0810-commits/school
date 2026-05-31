@@ -15,11 +15,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const login = useAuthStore((s) => s.login);
+  const login = useAuthStore((state) => state.login);
   const router = useRouter();
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError("");
     setLoading(true);
 
@@ -33,7 +33,7 @@ export default function LoginPage() {
     setLoading(false);
 
     if (apiError || !data) {
-      setError(apiError || "فشل تسجيل الدخول");
+      setError(apiError ?? "فشل تسجيل الدخول");
       return;
     }
 
@@ -44,32 +44,32 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-8">
-      <h1 className="text-2xl font-bold mb-6 text-center">تسجيل الدخول</h1>
+    <div className="rounded-2xl bg-white p-8 shadow-lg">
+      <h1 className="mb-6 text-center text-2xl font-bold">تسجيل الدخول</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && <div className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">{error}</div>}
+        {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
         <div>
-          <label htmlFor="email" className="block text-sm font-medium mb-1">
+          <label htmlFor="email" className="mb-1 block text-sm font-medium">
             البريد الإلكتروني
           </label>
           <input
             id="email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(event) => setEmail(event.target.value)}
             required
             className="w-full rounded-lg border border-border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div>
-          <label htmlFor="subdomain" className="block text-sm font-medium mb-1">
+          <label htmlFor="subdomain" className="mb-1 block text-sm font-medium">
             النطاق الفرعي للأكاديمية
           </label>
           <input
             id="subdomain"
             type="text"
             value={subdomain}
-            onChange={(e) => setSubdomain(e.target.value.toLowerCase())}
+            onChange={(event) => setSubdomain(event.target.value.toLowerCase())}
             required
             minLength={3}
             pattern="^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
@@ -78,14 +78,14 @@ export default function LoginPage() {
           />
         </div>
         <div>
-          <label htmlFor="password" className="block text-sm font-medium mb-1">
+          <label htmlFor="password" className="mb-1 block text-sm font-medium">
             كلمة المرور
           </label>
           <input
             id="password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(event) => setPassword(event.target.value)}
             required
             minLength={8}
             className="w-full rounded-lg border border-border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
@@ -94,7 +94,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-primary text-primary-foreground rounded-lg py-2.5 font-medium hover:bg-primary/90 disabled:opacity-50"
+          className="w-full rounded-lg bg-primary py-2.5 font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {loading ? "جار تسجيل الدخول..." : "تسجيل الدخول"}
         </button>

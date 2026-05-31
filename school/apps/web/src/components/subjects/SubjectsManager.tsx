@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
+import type { DropResult } from "@hello-pangea/dnd";
+import { Edit, GripVertical, Plus, Trash2 } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
-import { Plus, GripVertical, Trash2, Edit } from "lucide-react";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { SubjectDialog } from "./SubjectDialog";
 import { StagesManager } from "./StagesManager";
 
@@ -16,63 +17,60 @@ export function SubjectsManager() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const token = useAuthStore((s) => s.accessToken) ?? undefined;
-
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const token = useAuthStore((state) => state.accessToken) ?? undefined;
 
-  const fetchSubjects = async () => {
+  const fetchSubjects = useCallback(async () => {
     setLoading(true);
-    const res = await apiClient<Subject[]>("/api/subjects", { token, parse: (v) => v as Subject[] });
-    if (res.data) setSubjects(res.data);
+    const response = await apiClient<Subject[]>("/api/subjects", { token, parse: (value) => value as Subject[] });
+    if (response.data) {
+      setSubjects(response.data);
+    }
     setLoading(false);
-  };
+  }, [token]);
 
   useEffect(() => {
-    // Avoid triggering React state update synchronously during render phase
-    setTimeout(() => {
-      fetchSubjects();
+    const timeout = window.setTimeout(() => {
+      void fetchSubjects();
     }, 0);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+    return () => window.clearTimeout(timeout);
+  }, [fetchSubjects]);
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
-    
+
     const items = Array.from(subjects);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
-    
-    // Update local state first (Optimistic update)
-    const newSubjects = items.map((sub, idx) => ({ ...sub, sortOrder: idx }));
-    setSubjects(newSubjects);
+    const nextSubjects = items.map((subject, index) => ({ ...subject, sortOrder: index }));
 
-    // Sync to backend
+    setSubjects(nextSubjects);
     await apiClient("/api/subjects/reorder", {
       method: "PATCH",
       token,
-      body: JSON.stringify(
-        newSubjects.map(s => ({ id: s.id, sortOrder: s.sortOrder }))
-      ),
+      body: JSON.stringify(nextSubjects.map((subject) => ({ id: subject.id, sortOrder: subject.sortOrder }))),
     });
   };
 
   const deleteSubject = async (id: string) => {
-    if (!confirm("هل أنت متأكد من الحذف؟ سيتم حذف كل المحاور والدروس المرتبطة.")) return;
-    setSubjects((prev) => prev.filter((s) => s.id !== id));
+    if (!confirm("هل أنت متأكد من حذف هذه المادة؟ سيتم إخفاء كل المحاور والدروس المرتبطة بها.")) return;
+    setSubjects((current) => current.filter((subject) => subject.id !== id));
     await apiClient(`/api/subjects/${id}`, { method: "DELETE", token });
   };
 
-  if (loading) return <div className="p-8 text-center text-muted-foreground">جاري أخذ البيانات...</div>;
+  if (loading) {
+    return <div className="p-8 text-center text-muted-foreground">جار تحميل البيانات...</div>;
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">إدارة المواد التعليمية</h1>
         <button
           onClick={() => setIsDialogOpen(true)}
-          className="bg-primary text-primary-foreground flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
+          className="flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="h-5 w-5" />
           إضافة مادة جديدة
         </button>
       </div>
@@ -83,49 +81,44 @@ export function SubjectsManager() {
             <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
               {subjects.map((subject, index) => (
                 <Draggable key={subject.id} draggableId={subject.id} index={index}>
-                  {(provided, snapshot) => (
-                    <div ref={provided.innerRef} {...provided.draggableProps}>
+                  {(dragProvided, snapshot) => (
+                    <div ref={dragProvided.innerRef} {...dragProvided.draggableProps}>
                       <div
-                        className={`bg-white border border-border rounded-xl p-4 shadow-sm flex items-center gap-4 transition-shadow ${
+                        className={`flex items-center gap-4 rounded-xl border border-border bg-white p-4 shadow-sm transition-shadow ${
                           snapshot.isDragging ? "shadow-lg ring-2 ring-primary/20" : ""
                         }`}
                       >
-                        <div {...provided.dragHandleProps} className="text-muted-foreground hover:text-foreground cursor-grab">
-                          <GripVertical className="w-5 h-5" />
-                        </div>
-                        
-                        <div className="w-4 h-10 rounded-full" style={{ backgroundColor: subject.color }}></div>
-                        
-                        <div className="flex-1 font-bold text-lg">{subject.title}</div>
-                        
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span>{subject.stages.length} محور</span>
+                        <div
+                          {...dragProvided.dragHandleProps}
+                          className="cursor-grab text-muted-foreground hover:text-foreground"
+                        >
+                          <GripVertical className="h-5 w-5" />
                         </div>
 
+                        <div className="h-10 w-4 rounded-full" style={{ backgroundColor: subject.color }} />
+                        <div className="flex-1 text-lg font-bold">{subject.title}</div>
+                        <div className="text-sm text-muted-foreground">{subject.stages.length} محور</div>
+
                         <div className="flex items-center gap-2">
-                          <button className="p-2 text-muted-foreground hover:text-primary transition-colors cursor-pointer rounded-lg hover:bg-muted">
-                            <Edit className="w-4 h-4" />
+                          <button className="cursor-pointer rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-primary">
+                            <Edit className="h-4 w-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => deleteSubject(subject.id)}
-                            className="p-2 text-muted-foreground hover:text-destructive transition-colors cursor-pointer rounded-lg hover:bg-destructive/10"
+                            className="cursor-pointer rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => setExpandedId(expandedId === subject.id ? null : subject.id)}
-                            className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs hover:bg-primary/20 transition-colors ml-4 cursor-pointer"
+                            className="mr-4 cursor-pointer rounded-full bg-primary/10 px-3 py-1 text-xs text-primary transition-colors hover:bg-primary/20"
                           >
                             {expandedId === subject.id ? "إخفاء" : "إدارة المحاور"}
                           </button>
                         </div>
                       </div>
                       {expandedId === subject.id && (
-                        <StagesManager 
-                          subjectId={subject.id} 
-                          initialStages={subject.stages || []} 
-                          onUpdate={fetchSubjects} 
-                        />
+                        <StagesManager subjectId={subject.id} initialStages={subject.stages} onUpdate={fetchSubjects} />
                       )}
                     </div>
                   )}
@@ -137,12 +130,7 @@ export function SubjectsManager() {
         </Droppable>
       </DragDropContext>
 
-      {isDialogOpen && (
-        <SubjectDialog 
-          onClose={() => setIsDialogOpen(false)} 
-          onSuccess={fetchSubjects}
-        />
-      )}
+      {isDialogOpen && <SubjectDialog onClose={() => setIsDialogOpen(false)} onSuccess={fetchSubjects} />}
     </div>
   );
 }

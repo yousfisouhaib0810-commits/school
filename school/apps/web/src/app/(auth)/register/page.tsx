@@ -16,8 +16,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError("");
     setLoading(true);
 
@@ -30,7 +30,7 @@ export default function RegisterPage() {
     setLoading(false);
 
     if (apiError || !data) {
-      setError(apiError || "فشل إنشاء الحساب");
+      setError(apiError ?? "فشل إنشاء الحساب");
       return;
     }
 
@@ -42,33 +42,33 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-8">
-      <h1 className="text-2xl font-bold mb-6 text-center">إنشاء حساب جديد</h1>
+    <div className="rounded-2xl bg-white p-8 shadow-lg">
+      <h1 className="mb-6 text-center text-2xl font-bold">إنشاء حساب جديد</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && <div className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">{error}</div>}
+        {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
         <div>
-          <label htmlFor="name" className="block text-sm font-medium mb-1">
+          <label htmlFor="name" className="mb-1 block text-sm font-medium">
             اسم الأكاديمية
           </label>
           <input
             id="name"
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(event) => setName(event.target.value)}
             required
             minLength={2}
             className="w-full rounded-lg border border-border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div>
-          <label htmlFor="subdomain" className="block text-sm font-medium mb-1">
+          <label htmlFor="subdomain" className="mb-1 block text-sm font-medium">
             النطاق الفرعي
           </label>
           <input
             id="subdomain"
             type="text"
             value={subdomain}
-            onChange={(e) => setSubdomain(e.target.value.toLowerCase())}
+            onChange={(event) => setSubdomain(event.target.value.toLowerCase())}
             required
             minLength={3}
             pattern="^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
@@ -77,27 +77,27 @@ export default function RegisterPage() {
           />
         </div>
         <div>
-          <label htmlFor="email" className="block text-sm font-medium mb-1">
+          <label htmlFor="email" className="mb-1 block text-sm font-medium">
             البريد الإلكتروني
           </label>
           <input
             id="email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(event) => setEmail(event.target.value)}
             required
             className="w-full rounded-lg border border-border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div>
-          <label htmlFor="password" className="block text-sm font-medium mb-1">
+          <label htmlFor="password" className="mb-1 block text-sm font-medium">
             كلمة المرور
           </label>
           <input
             id="password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(event) => setPassword(event.target.value)}
             required
             minLength={8}
             className="w-full rounded-lg border border-border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
@@ -106,7 +106,7 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-primary text-primary-foreground rounded-lg py-2.5 font-medium hover:bg-primary/90 disabled:opacity-50"
+          className="w-full rounded-lg bg-primary py-2.5 font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {loading ? "جار إنشاء الحساب..." : "إنشاء الحساب"}
         </button>

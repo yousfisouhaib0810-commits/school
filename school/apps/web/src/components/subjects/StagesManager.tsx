@@ -1,42 +1,40 @@
 "use client";
 
 import { useState } from "react";
-import { Stage } from "./SubjectsManager";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
-import { GripVertical, Trash2, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
+import type { DropResult } from "@hello-pangea/dnd";
+import { ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
+import type { Stage } from "./SubjectsManager";
 import { LessonsManager } from "./LessonsManager";
 
-export function StagesManager({ 
-  subjectId, 
-  initialStages, 
-  onUpdate 
-}: { 
-  subjectId: string; 
-  initialStages: Stage[]; 
+export function StagesManager({
+  subjectId,
+  initialStages,
+  onUpdate,
+}: {
+  subjectId: string;
+  initialStages: Stage[];
   onUpdate: () => void;
 }) {
   const [stages, setStages] = useState(initialStages);
   const [expandedStage, setExpandedStage] = useState<string | null>(null);
-  const token = useAuthStore((s) => s.accessToken) ?? undefined;
+  const token = useAuthStore((state) => state.accessToken) ?? undefined;
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
-    
+
     const items = Array.from(stages);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
-    
-    const newStages = items.map((st, idx) => ({ ...st, sortOrder: idx }));
-    setStages(newStages);
+    const nextStages = items.map((stage, index) => ({ ...stage, sortOrder: index }));
 
+    setStages(nextStages);
     await apiClient("/api/stages/reorder", {
       method: "PATCH",
       token,
-      body: JSON.stringify(
-        newStages.map(s => ({ id: s.id, sortOrder: s.sortOrder }))
-      ),
+      body: JSON.stringify(nextStages.map((stage) => ({ id: stage.id, sortOrder: stage.sortOrder }))),
     });
     onUpdate();
   };
@@ -44,7 +42,7 @@ export function StagesManager({
   const handleAdd = async () => {
     const title = prompt("اسم المحور الجديد:");
     if (!title) return;
-    
+
     await apiClient("/api/stages", {
       method: "POST",
       token,
@@ -54,17 +52,21 @@ export function StagesManager({
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("تأكيد الحذف؟")) return;
+    if (!confirm("تأكيد حذف هذا المحور؟ سيتم إخفاء الدروس المرتبطة به.")) return;
     await apiClient(`/api/stages/${id}`, { method: "DELETE", token });
     onUpdate();
   };
 
   return (
-    <div className="mt-4 mr-8 p-4 bg-muted/30 rounded-xl border border-border">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="font-bold text-sm text-foreground">محاور المادة</h3>
-        <button onClick={handleAdd} className="text-xs bg-secondary text-secondary-foreground hover:bg-secondary/80 px-3 py-1 rounded-md flex items-center gap-1 cursor-pointer">
-          <Plus className="w-3 h-3" /> أضف محور
+    <div className="mr-8 mt-4 rounded-xl border border-border bg-muted/30 p-4">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-sm font-bold text-foreground">محاور المادة</h3>
+        <button
+          onClick={handleAdd}
+          className="flex cursor-pointer items-center gap-1 rounded-md bg-secondary px-3 py-1 text-xs text-secondary-foreground hover:bg-secondary/80"
+        >
+          <Plus className="h-3 w-3" />
+          أضف محور
         </button>
       </div>
 
@@ -74,30 +76,40 @@ export function StagesManager({
             <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
               {stages.map((stage, index) => (
                 <Draggable key={stage.id} draggableId={stage.id} index={index}>
-                  {(provided, snapshot) => (
-                    <div ref={provided.innerRef} {...provided.draggableProps} className={`bg-white border border-border rounded-lg ${snapshot.isDragging ? "shadow-md" : ""}`}>
-                      <div className="flex items-center p-3 gap-3">
-                        <div {...provided.dragHandleProps} className="text-muted-foreground hover:text-foreground cursor-grab">
-                          <GripVertical className="w-4 h-4" />
+                  {(dragProvided, snapshot) => (
+                    <div
+                      ref={dragProvided.innerRef}
+                      {...dragProvided.draggableProps}
+                      className={`rounded-lg border border-border bg-white ${snapshot.isDragging ? "shadow-md" : ""}`}
+                    >
+                      <div className="flex items-center gap-3 p-3">
+                        <div
+                          {...dragProvided.dragHandleProps}
+                          className="cursor-grab text-muted-foreground hover:text-foreground"
+                        >
+                          <GripVertical className="h-4 w-4" />
                         </div>
                         <div className="flex-1 text-sm font-medium">{stage.title}</div>
-                        
-                        <div className="flex items-center gap-1 text-muted-foreground mr-auto">
-                          <button onClick={() => handleDelete(stage.id)} className="p-1 hover:text-destructive transition-colors cursor-pointer rounded hover:bg-destructive/10">
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                          <button 
-                            onClick={() => setExpandedStage(expandedStage === stage.id ? null : stage.id)}
-                            className="p-1 hover:text-primary transition-colors cursor-pointer rounded hover:bg-primary/10 ml-2 bg-muted"
+
+                        <div className="mr-auto flex items-center gap-1 text-muted-foreground">
+                          <button
+                            onClick={() => handleDelete(stage.id)}
+                            className="cursor-pointer rounded p-1 transition-colors hover:bg-destructive/10 hover:text-destructive"
                           >
-                            {expandedStage === stage.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => setExpandedStage(expandedStage === stage.id ? null : stage.id)}
+                            className="mr-2 cursor-pointer rounded bg-muted p-1 transition-colors hover:bg-primary/10 hover:text-primary"
+                          >
+                            {expandedStage === stage.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                           </button>
                         </div>
                       </div>
-                      
+
                       {expandedStage === stage.id && (
-                        <div className="p-3 border-t border-border bg-gray-50/50">
-                          <LessonsManager stageId={stage.id} initialLessons={stage.lessons || []} onUpdate={onUpdate} />
+                        <div className="border-t border-border bg-gray-50/50 p-3">
+                          <LessonsManager stageId={stage.id} initialLessons={stage.lessons} onUpdate={onUpdate} />
                         </div>
                       )}
                     </div>
