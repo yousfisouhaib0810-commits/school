@@ -16,10 +16,7 @@ export function TextBlockComponent({ props }: TextBlockProps) {
   return (
     <section className="w-full py-12">
       <div className={`container px-4 md:px-6 max-w-4xl mx-auto ${alignmentClass}`}>
-        <div
-          className="prose prose-lg dark:prose-invert max-w-none text-muted-foreground"
-          dangerouslySetInnerHTML={{ __html: props.content }}
-        />
+        <p className="whitespace-pre-wrap text-lg leading-8 text-muted-foreground">{props.content}</p>
       </div>
     </section>
   );
