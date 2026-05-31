@@ -9,6 +9,12 @@ const statusSchema = z.object({
   status: z.enum(["ACTIVE", "SUSPENDED"]),
 });
 
+const auditLogsQuerySchema = z.object({
+  tenantId: z.string().uuid().optional(),
+  cursor: z.string().uuid().optional(),
+  take: z.coerce.number().int().min(1).max(50).default(25),
+});
+
 const superAdminRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook("preHandler", async (request, reply) => {
     try {
@@ -48,6 +54,44 @@ const superAdminRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     return reply.send(enrichedTenants);
+  });
+
+  fastify.get("/audit-logs", async (request, reply) => {
+    const query = auditLogsQuerySchema.safeParse(request.query);
+    if (!query.success) {
+      return reply.status(400).send({ error: "Invalid audit log query" });
+    }
+
+    const logs = await fastify.prisma.auditLog.findMany({
+      where: {
+        ...(query.data.tenantId ? { tenantId: query.data.tenantId } : {}),
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        actorUserId: true,
+        action: true,
+        entityType: true,
+        entityId: true,
+        metadata: true,
+        createdAt: true,
+        tenant: {
+          select: {
+            subdomain: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: query.data.take,
+      ...(query.data.cursor ? { cursor: { id: query.data.cursor }, skip: 1 } : {}),
+    });
+
+    return reply.send({
+      data: logs,
+      nextCursor: logs.length === query.data.take ? logs[logs.length - 1]?.id ?? null : null,
+    });
   });
 
   fastify.patch("/tenants/:tenantId/status", async (request, reply) => {

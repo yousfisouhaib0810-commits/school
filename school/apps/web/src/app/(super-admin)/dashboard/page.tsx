@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Loader2, ShieldAlert, Users, Building2, Store } from "lucide-react";
+import { Activity, Loader2, ShieldAlert, Users, Building2, Store } from "lucide-react";
 import { z } from "zod";
 
 interface Tenant {
@@ -15,6 +15,21 @@ interface Tenant {
   plan: string;
   createdAt: string;
   usersCount?: number;
+}
+
+interface AuditLog {
+  id: string;
+  tenantId: string;
+  actorUserId: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  metadata: unknown | null;
+  createdAt: string;
+  tenant: {
+    subdomain: string;
+    name: string;
+  };
 }
 
 const tenantSchema = z.object({
@@ -34,9 +49,31 @@ const tenantStatusResponseSchema = z.object({
   status: z.enum(["ACTIVE", "SUSPENDED"]),
 });
 
+const auditLogSchema = z.object({
+  id: z.string().uuid(),
+  tenantId: z.string().uuid(),
+  actorUserId: z.string().uuid(),
+  action: z.string(),
+  entityType: z.string(),
+  entityId: z.string().uuid(),
+  metadata: z.unknown().nullable().optional().transform((value) => value ?? null),
+  createdAt: z.string(),
+  tenant: z.object({
+    subdomain: z.string(),
+    name: z.string(),
+  }),
+});
+
+const auditLogsResponseSchema = z.object({
+  data: z.array(auditLogSchema),
+  nextCursor: z.string().uuid().nullable(),
+});
+
 export default function SuperAdminDashboard() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [auditLoading, setAuditLoading] = useState(true);
 
   async function loadTenants() {
     setLoading(true);
@@ -53,9 +90,25 @@ export default function SuperAdminDashboard() {
     }
   }
 
+  async function loadAuditLogs() {
+    setAuditLoading(true);
+    try {
+      const res = await apiClient<{ data: AuditLog[]; nextCursor: string | null }>("/api/super-admin/audit-logs", {
+        parse: (raw: unknown) => auditLogsResponseSchema.parse(raw),
+      });
+      if (res.error) throw new Error(res.error);
+      setAuditLogs(res.data?.data || []);
+    } catch {
+      toast.error("Failed to load audit logs");
+    } finally {
+      setAuditLoading(false);
+    }
+  }
+
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       void loadTenants();
+      void loadAuditLogs();
     }, 0);
     return () => window.clearTimeout(timeout);
   }, []);
@@ -73,9 +126,25 @@ export default function SuperAdminDashboard() {
       
       toast.success(`Tenant ${newStatus.toLowerCase()} successfully`);
       setTenants(prev => prev.map(t => t.id === tenantId ? { ...t, status: newStatus as "ACTIVE" | "SUSPENDED" } : t));
+      await loadAuditLogs();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Settings update failed");
     }
+  }
+
+  function formatAuditMetadata(metadata: unknown): string {
+    if (typeof metadata !== "object" || metadata === null) {
+      return "";
+    }
+
+    const previousStatus = "previousStatus" in metadata ? metadata.previousStatus : null;
+    const newStatus = "newStatus" in metadata ? metadata.newStatus : null;
+
+    if (typeof previousStatus === "string" && typeof newStatus === "string") {
+      return `${previousStatus} -> ${newStatus}`;
+    }
+
+    return "";
   }
 
   if (loading) {
@@ -191,6 +260,66 @@ export default function SuperAdminDashboard() {
                     No tenants found in the database.
                   </td>
                 </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-neutral-800 bg-neutral-800/30 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-neutral-400" />
+            <h2 className="text-lg font-semibold text-white">Recent Audit Logs</h2>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadAuditLogs} className="border-neutral-700 text-neutral-300 hover:text-white hover:bg-neutral-800">
+            Refresh
+          </Button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-neutral-900 border-b border-neutral-800 text-neutral-400">
+              <tr>
+                <th className="px-6 py-4 font-medium">Time</th>
+                <th className="px-6 py-4 font-medium">Tenant</th>
+                <th className="px-6 py-4 font-medium">Action</th>
+                <th className="px-6 py-4 font-medium">Entity</th>
+                <th className="px-6 py-4 font-medium">Details</th>
+                <th className="px-6 py-4 font-medium">Actor</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-800/50">
+              {auditLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-neutral-500">
+                    Loading audit logs...
+                  </td>
+                </tr>
+              ) : auditLogs.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-neutral-500">
+                    No audit logs recorded yet.
+                  </td>
+                </tr>
+              ) : (
+                auditLogs.map((log) => (
+                  <tr key={log.id} className="hover:bg-neutral-800/20 transition-colors">
+                    <td className="px-6 py-4 text-neutral-300">{new Date(log.createdAt).toLocaleString()}</td>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-white">{log.tenant.name}</div>
+                      <div className="text-neutral-500 text-xs">{log.tenant.subdomain}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="px-2 py-1 rounded text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                        {log.action}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-neutral-300">{log.entityType}</td>
+                    <td className="px-6 py-4 text-neutral-300">{formatAuditMetadata(log.metadata)}</td>
+                    <td className="px-6 py-4 text-neutral-500">{log.actorUserId.slice(0, 8)}...</td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>

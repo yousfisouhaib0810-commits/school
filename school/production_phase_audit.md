@@ -130,10 +130,11 @@ Evidence:
 - Super-admin tenant list and suspend/reactivate controls exist.
 - API checks `SUPER_ADMIN` role.
 - Tenant status changes are now written with tenant-scoped audit log records inside the same transaction.
+- Super-admin audit logs can now be queried through a paginated API and reviewed in the dashboard.
 
 Remaining:
 - The secret admin entry path and operational login flow need hardening.
-- Add an audit-log viewer and broaden logging to all sensitive admin actions.
+- Broaden audit logging to all sensitive admin actions.
 
 ## Phase 9 - Protection, Performance, Quality
 
