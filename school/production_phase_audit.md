@@ -29,6 +29,7 @@ Evidence:
 - `/api/auth/session` now hydrates the frontend user from the httpOnly access-token cookie after page refresh.
 - Tenant routes include app-level `tenantId` filters and RLS policies exist.
 - Auth routes are rate-limited.
+- Automated API tests now verify request-level CSRF rejection, acceptance with matching signed tokens, and the intended webhook exemption.
 - OTP email verification flow exists and was externally tested through CSRF-protected registration up to the Resend send step.
 - Academy names are now escaped before they are inserted into the OTP email HTML.
 - Password reset by email OTP is implemented for all roles within a tenant, with generic request responses to reduce account enumeration risk.
@@ -36,7 +37,7 @@ Evidence:
 
 Remaining:
 - Configure a verified Resend sender/domain in Render: replace the current placeholder `EMAIL_FROM` domain with a domain verified in Resend.
-- Add focused automated tests for CSRF rejection/acceptance and tenant isolation.
+- Add focused automated tests for auth tenant isolation.
 
 ## Phase 2 - Teacher Dashboard
 
@@ -152,7 +153,7 @@ Evidence:
 - `/api/readiness` distinguishes invalid Resend API credentials, insufficient Resend domain-check permissions, and placeholder email sender domains.
 - `pnpm type-check`, `pnpm lint`, `pnpm test`, and `pnpm build` pass locally after the latest changes.
 - Remaining frontend API response casts and raw HTML rendering patterns were removed from the inspected app/package source paths.
-- A first automated API security test covers CSRF token validation and tamper rejection.
+- Automated API security tests cover CSRF token validation, tamper rejection, request-level enforcement, and the intended webhook exemption.
 - Tenant middleware tests now verify `/api/readiness` is public while tenant-scoped routes still reject missing tenant headers.
 
 Remaining:
