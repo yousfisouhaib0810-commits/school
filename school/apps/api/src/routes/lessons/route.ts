@@ -1,6 +1,7 @@
 import { FastifyPluginAsync } from "fastify";
 import { lessonSchema, lessonUpdateSchema, reorderSchema } from "@school/shared";
 import { z } from "zod";
+import { createTenantAuditLog } from "../../services/audit-log.js";
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 
@@ -35,6 +36,15 @@ const lessonRoutes: FastifyPluginAsync = async (fastify) => {
       },
     });
     await fastify.redis.del(`tenant:${request.tenantId}:lessons`);
+    await createTenantAuditLog({
+      prisma: fastify.prisma,
+      tenantId: request.tenantId,
+      actorUserId: request.userId,
+      action: "LESSON_CREATED",
+      entityType: "LESSON",
+      entityId: lesson.id,
+      metadata: { stageId: lesson.stageId, title: lesson.title },
+    });
     return reply.status(201).send(lesson);
   });
 
@@ -50,6 +60,15 @@ const lessonRoutes: FastifyPluginAsync = async (fastify) => {
       )
     );
     await fastify.redis.del(`tenant:${request.tenantId}:lessons`);
+    await createTenantAuditLog({
+      prisma: fastify.prisma,
+      tenantId: request.tenantId,
+      actorUserId: request.userId,
+      action: "LESSONS_REORDERED",
+      entityType: "LESSON",
+      entityId: request.tenantId,
+      metadata: { itemCount: items.length },
+    });
     return { success: true };
   });
 
@@ -62,6 +81,14 @@ const lessonRoutes: FastifyPluginAsync = async (fastify) => {
       data,
     });
     await fastify.redis.del(`tenant:${request.tenantId}:lessons`);
+    await createTenantAuditLog({
+      prisma: fastify.prisma,
+      tenantId: request.tenantId,
+      actorUserId: request.userId,
+      action: "LESSON_UPDATED",
+      entityType: "LESSON",
+      entityId: id,
+    });
     return fastify.prisma.lesson.findFirst({
       where: { id, tenantId: request.tenantId, deletedAt: null }
     });
@@ -74,6 +101,14 @@ const lessonRoutes: FastifyPluginAsync = async (fastify) => {
       data: { deletedAt: new Date() },
     });
     await fastify.redis.del(`tenant:${request.tenantId}:lessons`);
+    await createTenantAuditLog({
+      prisma: fastify.prisma,
+      tenantId: request.tenantId,
+      actorUserId: request.userId,
+      action: "LESSON_DELETED",
+      entityType: "LESSON",
+      entityId: id,
+    });
     return { success: true };
   });
 

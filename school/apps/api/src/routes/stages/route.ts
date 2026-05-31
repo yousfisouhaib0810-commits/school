@@ -1,6 +1,7 @@
 import { FastifyPluginAsync } from "fastify";
 import { stageSchema, stageUpdateSchema, reorderSchema } from "@school/shared";
 import { z } from "zod";
+import { createTenantAuditLog } from "../../services/audit-log.js";
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 
@@ -34,6 +35,15 @@ const stageRoutes: FastifyPluginAsync = async (fastify) => {
         sortOrder: count,
       },
     });
+    await createTenantAuditLog({
+      prisma: fastify.prisma,
+      tenantId: request.tenantId,
+      actorUserId: request.userId,
+      action: "STAGE_CREATED",
+      entityType: "STAGE",
+      entityId: stage.id,
+      metadata: { subjectId: stage.subjectId, title: stage.title },
+    });
     return reply.status(201).send(stage);
   });
 
@@ -48,6 +58,15 @@ const stageRoutes: FastifyPluginAsync = async (fastify) => {
         })
       )
     );
+    await createTenantAuditLog({
+      prisma: fastify.prisma,
+      tenantId: request.tenantId,
+      actorUserId: request.userId,
+      action: "STAGES_REORDERED",
+      entityType: "STAGE",
+      entityId: request.tenantId,
+      metadata: { itemCount: items.length },
+    });
     return { success: true };
   });
 
@@ -58,6 +77,14 @@ const stageRoutes: FastifyPluginAsync = async (fastify) => {
     await fastify.prisma.stage.updateMany({
       where: { id, tenantId: request.tenantId, deletedAt: null },
       data,
+    });
+    await createTenantAuditLog({
+      prisma: fastify.prisma,
+      tenantId: request.tenantId,
+      actorUserId: request.userId,
+      action: "STAGE_UPDATED",
+      entityType: "STAGE",
+      entityId: id,
     });
     return fastify.prisma.stage.findFirst({
       where: { id, tenantId: request.tenantId, deletedAt: null }
@@ -76,6 +103,14 @@ const stageRoutes: FastifyPluginAsync = async (fastify) => {
         data: { deletedAt: new Date() },
       }),
     ]);
+    await createTenantAuditLog({
+      prisma: fastify.prisma,
+      tenantId: request.tenantId,
+      actorUserId: request.userId,
+      action: "STAGE_DELETED",
+      entityType: "STAGE",
+      entityId: id,
+    });
     return { success: true };
   });
 

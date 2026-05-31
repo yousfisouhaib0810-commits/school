@@ -5,6 +5,7 @@ import axios from "axios";
 import { KJUR } from "jsrsasign";
 import { env } from "../../env.js";
 import { canAccessPaidTenantContent } from "../../services/subscription-access.js";
+import { createTenantAuditLog } from "../../services/audit-log.js";
 
 const meetingParamsSchema = z.object({ id: z.string().uuid() });
 const zoomTokenResponseSchema = z.object({ access_token: z.string().min(1) });
@@ -112,6 +113,16 @@ const liveRoutes: FastifyPluginAsync = async (fastify) => {
           zoomPassword: zoomMeeting.password,
           tenantId: request.tenantId,
         },
+      });
+
+      await createTenantAuditLog({
+        prisma: fastify.prisma,
+        tenantId: request.tenantId,
+        actorUserId: request.userId,
+        action: "LIVE_SESSION_CREATED",
+        entityType: "LIVE_SESSION",
+        entityId: liveSession.id,
+        metadata: { title: liveSession.title },
       });
 
       return reply.status(201).send(liveSession);

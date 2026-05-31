@@ -47,9 +47,10 @@ Evidence:
 - Subject/stage/lesson CRUD exists.
 - Drag-and-drop reorder endpoints were fixed so `/reorder` is not shadowed by `/:id`.
 - Soft delete is now used for subject/stage/lesson deletion.
+- Subject, stage, and lesson create/update/delete/reorder operations now write tenant-scoped audit logs.
 - Subject, stage, and lesson management now use inline forms and in-app delete confirmation instead of browser `prompt`/`confirm`.
 - Automated API tests now verify subject, stage, and lesson reorder requests stay scoped to the authenticated tenant.
-- Automated API tests now verify subject, stage, and lesson create, update, parent ownership checks, soft-delete cascades, and lesson cache invalidation.
+- Automated API tests now verify subject, stage, and lesson create, update, parent ownership checks, soft-delete cascades, lesson cache invalidation, and mutation audit events.
 
 Remaining:
 - Add browser-level teacher dashboard workflow tests after production test users are available.
@@ -81,6 +82,7 @@ Evidence:
 - Zoom config is now environment-driven and returns 503 when missing.
 - Tenant filters and pagination limits are applied.
 - Student live-session signatures now require a paid active tenant plan; staff roles remain allowed for hosting/admin workflows.
+- Live-session creation now writes a tenant-scoped audit log.
 
 Remaining:
 - The original project requirement mentions Jitsi, while current implementation uses Zoom. This needs a product decision.
@@ -117,6 +119,7 @@ Evidence:
 - Text blocks now render as escaped text instead of raw HTML.
 - The dashboard editor now provides block-level controls, live preview, validation messaging, draft save, and publish actions instead of requiring raw JSON edits.
 - Landing page updates now use tenant-scoped write filters, and automated API tests verify public published reads, tenant-scoped draft updates, and invalid block rejection before writes.
+- Landing page create/update operations now write tenant-scoped audit logs.
 - The platform landing page and auth pages now render Arabic/RTL copy correctly in production.
 
 Remaining:
@@ -147,11 +150,12 @@ Evidence:
 - Super-admin API access now revalidates the JWT actor against the database and rejects deleted, unverified, non-super-admin, or suspended-tenant actors before global reads.
 - Super-admin tenant-list and audit-log reads are now recorded as audit events with request context metadata.
 - The login flow now routes `SUPER_ADMIN` users directly to the operational `/dashboard` super-admin console.
+- Tenant settings updates now write tenant-scoped audit logs.
 - Automated API tests now cover stale actor rejection, non-super-admin rejection, audited global tenant reads, audited audit-log reads, and audited tenant status updates.
 
 Remaining:
 - Add browser-level super-admin login and console workflow tests after a production super-admin test account is available.
-- Broaden audit logging beyond super-admin operations to tenant-admin content changes where product policy requires it.
+- Define any additional product-specific audit event coverage required for non-content tenant-admin operations.
 
 ## Phase 9 - Protection, Performance, Quality
 
@@ -173,6 +177,7 @@ Evidence:
 - Student portal pages now expose explicit loading, empty, and retryable error states for course, lesson, and live-session flows.
 - Tenant middleware tests now verify `/api/readiness` is public while tenant-scoped routes still reject missing tenant headers.
 - Super-admin tests now verify hardened actor revalidation and audit logging for sensitive global operations.
+- Tenant-admin mutation tests now verify audit logging for subject, stage, lesson, landing-page, and tenant-settings changes.
 
 Remaining:
 - Add broader automated tests for auth edge cases, tenant isolation, webhooks, payments, and RLS.

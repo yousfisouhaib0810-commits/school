@@ -47,10 +47,23 @@ interface LandingPageModelStub {
 
 interface PrismaStub {
   landingPage: LandingPageModelStub;
+  auditLog: {
+    create(input: {
+      data: {
+        tenantId: string;
+        actorUserId: string;
+        action: string;
+        entityType: string;
+        entityId: string;
+        metadata?: unknown;
+      };
+    }): Promise<void>;
+  };
 }
 
 interface CapturedQueries {
   update?: LandingPageUpdateManyInput;
+  auditActions: string[];
 }
 
 function createPayload(published: boolean): LandingPageInput {
@@ -131,6 +144,11 @@ function createPrismaStub(records: LandingPageRecord[], capturedQueries: Capture
         return record;
       },
     },
+    auditLog: {
+      async create(input) {
+        capturedQueries.auditActions.push(input.data.action);
+      },
+    },
   };
 }
 
@@ -138,7 +156,8 @@ function toPrismaClientStub(stub: PrismaStub): PrismaClient {
   if (
     typeof stub.landingPage.findFirst !== "function" ||
     typeof stub.landingPage.updateMany !== "function" ||
-    typeof stub.landingPage.create !== "function"
+    typeof stub.landingPage.create !== "function" ||
+    typeof stub.auditLog.create !== "function"
   ) {
     throw new Error("Invalid Prisma test stub");
   }
@@ -201,7 +220,7 @@ describe("landing routes", () => {
   it("returns only the published landing page for the current tenant", async () => {
     const records = createRecords();
     records[0] = { ...records[0], published: true };
-    const app = await buildApp(records, {});
+    const app = await buildApp(records, { auditActions: [] });
 
     try {
       const response = await app.inject({ method: "GET", url: "/" });
@@ -217,7 +236,7 @@ describe("landing routes", () => {
 
   it("updates drafts with a tenant-scoped update query", async () => {
     const records = createRecords();
-    const capturedQueries: CapturedQueries = {};
+    const capturedQueries: CapturedQueries = { auditActions: [] };
     const app = await buildApp(records, capturedQueries);
     const payload = createPayload(true);
 
@@ -234,6 +253,7 @@ describe("landing routes", () => {
       assert.equal(capturedQueries.update?.where.id, PAGE_ID);
       assert.equal(capturedQueries.update?.where.tenantId, TENANT_ID);
       assert.notEqual(capturedQueries.update?.where.tenantId, OTHER_TENANT_ID);
+      assert.deepEqual(capturedQueries.auditActions, ["LANDING_PAGE_UPDATED"]);
     } finally {
       await app.close();
     }
@@ -241,7 +261,7 @@ describe("landing routes", () => {
 
   it("rejects invalid landing blocks before writing", async () => {
     const records = createRecords();
-    const capturedQueries: CapturedQueries = {};
+    const capturedQueries: CapturedQueries = { auditActions: [] };
     const app = await buildApp(records, capturedQueries);
 
     try {
@@ -257,6 +277,7 @@ describe("landing routes", () => {
       assert.equal(response.statusCode, 400);
       assert.deepEqual(response.json(), { error: "Invalid landing page data" });
       assert.equal(capturedQueries.update, undefined);
+      assert.deepEqual(capturedQueries.auditActions, []);
     } finally {
       await app.close();
     }

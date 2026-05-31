@@ -1,6 +1,7 @@
 import { FastifyPluginAsync } from "fastify";
 import { subjectSchema, subjectUpdateSchema, reorderSchema } from "@school/shared";
 import { z } from "zod";
+import { createTenantAuditLog } from "../../services/audit-log.js";
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 
@@ -44,6 +45,15 @@ const subjectRoutes: FastifyPluginAsync = async (fastify) => {
         sortOrder: count,
       },
     });
+    await createTenantAuditLog({
+      prisma: fastify.prisma,
+      tenantId: request.tenantId,
+      actorUserId: request.userId,
+      action: "SUBJECT_CREATED",
+      entityType: "SUBJECT",
+      entityId: subject.id,
+      metadata: { title: subject.title },
+    });
     return reply.status(201).send(subject);
   });
 
@@ -58,6 +68,15 @@ const subjectRoutes: FastifyPluginAsync = async (fastify) => {
         })
       )
     );
+    await createTenantAuditLog({
+      prisma: fastify.prisma,
+      tenantId: request.tenantId,
+      actorUserId: request.userId,
+      action: "SUBJECTS_REORDERED",
+      entityType: "SUBJECT",
+      entityId: request.tenantId,
+      metadata: { itemCount: items.length },
+    });
     return { success: true };
   });
 
@@ -68,6 +87,14 @@ const subjectRoutes: FastifyPluginAsync = async (fastify) => {
     await fastify.prisma.subject.updateMany({
       where: { id, tenantId: request.tenantId, deletedAt: null },
       data,
+    });
+    await createTenantAuditLog({
+      prisma: fastify.prisma,
+      tenantId: request.tenantId,
+      actorUserId: request.userId,
+      action: "SUBJECT_UPDATED",
+      entityType: "SUBJECT",
+      entityId: id,
     });
     
     return fastify.prisma.subject.findFirst({
@@ -91,6 +118,14 @@ const subjectRoutes: FastifyPluginAsync = async (fastify) => {
         data: { deletedAt: new Date() },
       }),
     ]);
+    await createTenantAuditLog({
+      prisma: fastify.prisma,
+      tenantId: request.tenantId,
+      actorUserId: request.userId,
+      action: "SUBJECT_DELETED",
+      entityType: "SUBJECT",
+      entityId: id,
+    });
     return { success: true };
   });
 

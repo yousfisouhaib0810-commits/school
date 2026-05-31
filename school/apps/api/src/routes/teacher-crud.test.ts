@@ -51,6 +51,7 @@ interface TeacherCrudStore {
   stages: StageRecord[];
   lessons: LessonRecord[];
   redisDeletes: string[];
+  auditActions: string[];
 }
 
 interface UpdateManyResult {
@@ -114,6 +115,7 @@ function createStore(): TeacherCrudStore {
       { id: LESSON_ID, tenantId: TENANT_ID, stageId: STAGE_ID, title: "Intro", sortOrder: 0, deletedAt: null },
     ],
     redisDeletes: [],
+    auditActions: [],
   };
 }
 
@@ -257,6 +259,20 @@ function createPrismaStub(store: TeacherCrudStore) {
         return { count };
       },
     },
+    auditLog: {
+      async create(input: {
+        data: {
+          tenantId: string;
+          actorUserId: string;
+          action: string;
+          entityType: string;
+          entityId: string;
+          metadata?: unknown;
+        };
+      }) {
+        store.auditActions.push(input.data.action);
+      },
+    },
     async $transaction<T>(operations: Array<Promise<T>>) {
       return Promise.all(operations);
     },
@@ -277,6 +293,7 @@ function toPrismaClientStub(stub: ReturnType<typeof createPrismaStub>): PrismaCl
     typeof stub.lesson.create !== "function" ||
     typeof stub.lesson.findFirst !== "function" ||
     typeof stub.lesson.updateMany !== "function" ||
+    typeof stub.auditLog.create !== "function" ||
     typeof stub.$transaction !== "function"
   ) {
     throw new Error("Invalid Prisma test stub");
@@ -351,6 +368,7 @@ describe("teacher CRUD routes", () => {
       assert.notEqual(store.stages.find((stage) => stage.id === STAGE_ID)?.deletedAt, null);
       assert.notEqual(store.lessons.find((lesson) => lesson.id === LESSON_ID)?.deletedAt, null);
       assert.equal(store.subjects.find((subject) => subject.id === OTHER_SUBJECT_ID)?.deletedAt, null);
+      assert.deepEqual(store.auditActions, ["SUBJECT_CREATED", "SUBJECT_UPDATED", "SUBJECT_DELETED"]);
     } finally {
       await app.close();
     }
@@ -396,6 +414,7 @@ describe("teacher CRUD routes", () => {
       assert.notEqual(store.stages.find((stage) => stage.id === STAGE_ID)?.deletedAt, null);
       assert.notEqual(store.lessons.find((lesson) => lesson.id === LESSON_ID)?.deletedAt, null);
       assert.equal(store.stages.find((stage) => stage.id === OTHER_STAGE_ID)?.deletedAt, null);
+      assert.deepEqual(store.auditActions, ["STAGE_CREATED", "STAGE_UPDATED", "STAGE_DELETED"]);
     } finally {
       await app.close();
     }
@@ -444,6 +463,7 @@ describe("teacher CRUD routes", () => {
         `tenant:${TENANT_ID}:lessons`,
         `tenant:${TENANT_ID}:lessons`,
       ]);
+      assert.deepEqual(store.auditActions, ["LESSON_CREATED", "LESSON_UPDATED", "LESSON_DELETED"]);
     } finally {
       await app.close();
     }

@@ -1,6 +1,7 @@
 import { FastifyPluginAsync } from "fastify";
 import { landingPageSchema } from "@school/shared";
 import type { Prisma } from "@school/database";
+import { createTenantAuditLog } from "../../services/audit-log.js";
 
 export const landingRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get("/", async (request, reply) => {
@@ -48,6 +49,15 @@ export const landingRoutes: FastifyPluginAsync = async (fastify) => {
           const updated = await fastify.prisma.landingPage.findFirst({
             where: { id: existing.id, tenantId: request.tenantId, deletedAt: null },
           });
+          await createTenantAuditLog({
+            prisma: fastify.prisma,
+            tenantId: request.tenantId,
+            actorUserId: request.userId,
+            action: "LANDING_PAGE_UPDATED",
+            entityType: "LANDING_PAGE",
+            entityId: existing.id,
+            metadata: { published: parsed.data.published, blockCount: parsed.data.blocks.length },
+          });
           return { data: updated };
         } else {
           const created = await fastify.prisma.landingPage.create({
@@ -56,6 +66,15 @@ export const landingRoutes: FastifyPluginAsync = async (fastify) => {
               blocks: blocksJson,
               published: parsed.data.published,
             },
+          });
+          await createTenantAuditLog({
+            prisma: fastify.prisma,
+            tenantId: request.tenantId,
+            actorUserId: request.userId,
+            action: "LANDING_PAGE_CREATED",
+            entityType: "LANDING_PAGE",
+            entityId: created.id,
+            metadata: { published: created.published, blockCount: parsed.data.blocks.length },
           });
           return { data: created };
         }

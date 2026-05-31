@@ -1,5 +1,6 @@
 import { FastifyPluginAsync } from "fastify";
 import { tenantUpdateSchema } from "@school/shared";
+import { createTenantAuditLog } from "../../services/audit-log.js";
 
 const tenantRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get("/me", {
@@ -35,6 +36,19 @@ const tenantRoutes: FastifyPluginAsync = async (fastify) => {
       data: {
         ...(body.name && { name: body.name }),
         ...(body.logoUrl !== undefined && { logoUrl: body.logoUrl ?? null }),
+      },
+    });
+
+    await createTenantAuditLog({
+      prisma: fastify.prisma,
+      tenantId: request.tenantId,
+      actorUserId: request.userId,
+      action: "TENANT_SETTINGS_UPDATED",
+      entityType: "TENANT",
+      entityId: tenant.id,
+      metadata: {
+        nameChanged: body.name !== undefined,
+        logoChanged: body.logoUrl !== undefined,
       },
     });
 

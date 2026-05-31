@@ -39,6 +39,18 @@ interface PrismaStub {
   subject: ModelStub;
   stage: ModelStub;
   lesson: ModelStub;
+  auditLog: {
+    create(input: {
+      data: {
+        tenantId: string;
+        actorUserId: string;
+        action: string;
+        entityType: string;
+        entityId: string;
+        metadata?: unknown;
+      };
+    }): Promise<void>;
+  };
   $transaction<T>(operations: Array<Promise<T>>): Promise<T[]>;
 }
 
@@ -51,6 +63,7 @@ function toPrismaClientStub(stub: PrismaStub): PrismaClient {
     typeof stub.subject.updateMany !== "function" ||
     typeof stub.stage.updateMany !== "function" ||
     typeof stub.lesson.updateMany !== "function" ||
+    typeof stub.auditLog.create !== "function" ||
     typeof stub.$transaction !== "function"
   ) {
     throw new Error("Invalid Prisma test stub");
@@ -86,20 +99,25 @@ function createModelStub(records: ReorderRecord[]): ModelStub {
   };
 }
 
-function createPrismaStub(records: ReorderRecord[]): PrismaStub {
+function createPrismaStub(records: ReorderRecord[], auditActions: string[]): PrismaStub {
   const model = createModelStub(records);
 
   return {
     subject: model,
     stage: model,
     lesson: model,
+    auditLog: {
+      async create(input) {
+        auditActions.push(input.data.action);
+      },
+    },
     async $transaction(operations) {
       return Promise.all(operations);
     },
   };
 }
 
-async function buildApp(route: FastifyPluginAsync, records: ReorderRecord[]) {
+async function buildApp(route: FastifyPluginAsync, records: ReorderRecord[], auditActions: string[]) {
   const app = Fastify();
 
   app.decorateRequest("userId", "");
@@ -110,7 +128,7 @@ async function buildApp(route: FastifyPluginAsync, records: ReorderRecord[]) {
     request.userRole = "TEACHER";
     request.tenantId = TENANT_A_ID;
   });
-  app.decorate("prisma", toPrismaClientStub(createPrismaStub(records)));
+  app.decorate("prisma", toPrismaClientStub(createPrismaStub(records, auditActions)));
   app.decorate("redis", toRedisStub({
     async del(..._keys: string[]) {
       return 1;
@@ -134,7 +152,8 @@ describe("teacher reorder routes", () => {
         { id: TENANT_A_ITEM_ID, tenantId: TENANT_A_ID, sortOrder: 0, deletedAt: null },
         { id: TENANT_B_ITEM_ID, tenantId: TENANT_B_ID, sortOrder: 0, deletedAt: null },
       ];
-      const app = await buildApp(testCase.route, records);
+      const auditActions: string[] = [];
+      const app = await buildApp(testCase.route, records, auditActions);
 
       const response = await app.inject({
         method: "PATCH",
@@ -149,6 +168,7 @@ describe("teacher reorder routes", () => {
       assert.deepEqual(response.json(), { success: true });
       assert.equal(records[0]?.sortOrder, 3);
       assert.equal(records[1]?.sortOrder, 0);
+      assert.equal(auditActions.length, 1);
 
       await app.close();
     });
