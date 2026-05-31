@@ -140,6 +140,7 @@ Status: partially implemented.
 
 Evidence:
 - Helmet, explicit CORS, global rate limiting, Redis cache for lesson/video list, health checks, and graceful shutdown exist.
+- `/api/readiness` reports production dependency readiness for database, Redis, Resend, Cloudflare, Chérgily, and Zoom without exposing secrets.
 - `pnpm type-check`, `pnpm lint`, `pnpm test`, and `pnpm build` pass locally after the latest changes.
 - Remaining frontend API response casts and raw HTML rendering patterns were removed from the inspected app/package source paths.
 - A first automated API security test covers CSRF token validation and tamper rejection.

@@ -26,6 +26,10 @@ import superAdminRoutes from "./routes/super-admin/route.js";
 const REDIS_CHECK_TIMEOUT_MS = 2_000;
 const DEFAULT_PRODUCTION_WEB_ORIGINS = new Set(["https://school-mu-one.vercel.app"]);
 
+function hasConfiguredValue(value: string | undefined): boolean {
+  return Boolean(value && !value.toLowerCase().includes("placeholder") && !value.toLowerCase().includes("replace-with"));
+}
+
 function configuredOrigins(): Set<string> {
   const origins = new Set(DEFAULT_PRODUCTION_WEB_ORIGINS);
   for (const origin of env.ALLOWED_ORIGINS?.split(",") ?? []) {
@@ -127,6 +131,48 @@ async function bootstrap() {
       request.log.error({ error }, "Health check failed");
       return reply.status(503).send({ status: "error", checks: { database: "error", redis: "error" } });
     }
+  });
+
+  fastify.get("/api/readiness", async (request, reply) => {
+    const checks = {
+      database: "ok",
+      redis: "ok",
+      email: hasConfiguredValue(env.RESEND_API_KEY) && hasConfiguredValue(env.EMAIL_FROM) ? "ok" : "missing",
+      cloudflareUpload:
+        hasConfiguredValue(env.CLOUDFLARE_ACCOUNT_ID) && hasConfiguredValue(env.CLOUDFLARE_STREAM_TOKEN)
+          ? "ok"
+          : "missing",
+      cloudflarePlayback:
+        hasConfiguredValue(env.CLOUDFLARE_STREAM_CUSTOMER_CODE) &&
+        hasConfiguredValue(env.CLOUDFLARE_STREAM_SIGNING_KEY_ID) &&
+        hasConfiguredValue(env.CLOUDFLARE_STREAM_SIGNING_PRIVATE_KEY)
+          ? "ok"
+          : "missing",
+      chargily: hasConfiguredValue(env.CHARGILY_SECRET_KEY) ? "ok" : "missing",
+      zoom:
+        hasConfiguredValue(env.ZOOM_ACCOUNT_ID) &&
+        hasConfiguredValue(env.ZOOM_CLIENT_ID) &&
+        hasConfiguredValue(env.ZOOM_CLIENT_SECRET) &&
+        hasConfiguredValue(env.ZOOM_SDK_KEY) &&
+        hasConfiguredValue(env.ZOOM_SDK_SECRET)
+          ? "ok"
+          : "missing",
+    };
+
+    try {
+      await fastify.prisma.$queryRaw`SELECT 1`;
+      await checkRedisConnectivity(env.REDIS_URL);
+    } catch (error) {
+      request.log.error({ error }, "Readiness infrastructure check failed");
+      checks.database = "error";
+      checks.redis = "error";
+    }
+
+    const ready = Object.values(checks).every((value) => value === "ok");
+    return reply.status(ready ? 200 : 503).send({
+      status: ready ? "ready" : "not_ready",
+      checks,
+    });
   });
 
   const shutdown = async (signal: NodeJS.Signals) => {
