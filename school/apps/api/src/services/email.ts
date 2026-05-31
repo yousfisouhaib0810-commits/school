@@ -1,4 +1,5 @@
 import { env } from "../env.js";
+import { isConfiguredValue, isUsableEmailSender } from "./email-config.js";
 
 interface SendEmailOptions {
   to: string;
@@ -11,7 +12,7 @@ interface ResendErrorResponse {
 }
 
 export function isEmailServiceConfigured(): boolean {
-  return Boolean(env.RESEND_API_KEY && env.EMAIL_FROM);
+  return isConfiguredValue(env.RESEND_API_KEY) && isUsableEmailSender(env.EMAIL_FROM);
 }
 
 export async function sendEmail(options: SendEmailOptions): Promise<void> {

@@ -23,6 +23,7 @@ import paymentsRoutes from "./routes/payments/route.js";
 import chargilyWebhookRoute from "./routes/webhooks/chargily.js";
 import landingRoutes from "./routes/landing/route.js";
 import superAdminRoutes from "./routes/super-admin/route.js";
+import { getEmailDomain, isConfiguredValue, isUsableEmailSender } from "./services/email-config.js";
 
 const REDIS_CHECK_TIMEOUT_MS = 2_000;
 const EXTERNAL_READINESS_TIMEOUT_MS = 3_000;
@@ -41,20 +42,8 @@ const resendDomainsResponseSchema = z.object({
   ),
 });
 
-function hasConfiguredValue(value: string | undefined): value is string {
-  return Boolean(value && !value.toLowerCase().includes("placeholder") && !value.toLowerCase().includes("replace-with"));
-}
-
-function getEmailDomain(emailFrom: string): string | null {
-  const emailAddress = emailFrom.includes("<") && emailFrom.includes(">")
-    ? emailFrom.slice(emailFrom.indexOf("<") + 1, emailFrom.indexOf(">"))
-    : emailFrom;
-  const [, domain] = emailAddress.trim().split("@");
-  return domain?.toLowerCase() ?? null;
-}
-
 async function checkResendReadiness(): Promise<ReadinessValue> {
-  if (!hasConfiguredValue(env.RESEND_API_KEY) || !hasConfiguredValue(env.EMAIL_FROM)) {
+  if (!isConfiguredValue(env.RESEND_API_KEY) || !isUsableEmailSender(env.EMAIL_FROM)) {
     return "missing";
   }
 
@@ -197,22 +186,22 @@ async function bootstrap() {
       redis: "ok",
       email: await checkResendReadiness(),
       cloudflareUpload:
-        hasConfiguredValue(env.CLOUDFLARE_ACCOUNT_ID) && hasConfiguredValue(env.CLOUDFLARE_STREAM_TOKEN)
+        isConfiguredValue(env.CLOUDFLARE_ACCOUNT_ID) && isConfiguredValue(env.CLOUDFLARE_STREAM_TOKEN)
           ? "ok"
           : "missing",
       cloudflarePlayback:
-        hasConfiguredValue(env.CLOUDFLARE_STREAM_CUSTOMER_CODE) &&
-        hasConfiguredValue(env.CLOUDFLARE_STREAM_SIGNING_KEY_ID) &&
-        hasConfiguredValue(env.CLOUDFLARE_STREAM_SIGNING_PRIVATE_KEY)
+        isConfiguredValue(env.CLOUDFLARE_STREAM_CUSTOMER_CODE) &&
+        isConfiguredValue(env.CLOUDFLARE_STREAM_SIGNING_KEY_ID) &&
+        isConfiguredValue(env.CLOUDFLARE_STREAM_SIGNING_PRIVATE_KEY)
           ? "ok"
           : "missing",
-      chargily: hasConfiguredValue(env.CHARGILY_SECRET_KEY) ? "ok" : "missing",
+      chargily: isConfiguredValue(env.CHARGILY_SECRET_KEY) ? "ok" : "missing",
       zoom:
-        hasConfiguredValue(env.ZOOM_ACCOUNT_ID) &&
-        hasConfiguredValue(env.ZOOM_CLIENT_ID) &&
-        hasConfiguredValue(env.ZOOM_CLIENT_SECRET) &&
-        hasConfiguredValue(env.ZOOM_SDK_KEY) &&
-        hasConfiguredValue(env.ZOOM_SDK_SECRET)
+        isConfiguredValue(env.ZOOM_ACCOUNT_ID) &&
+        isConfiguredValue(env.ZOOM_CLIENT_ID) &&
+        isConfiguredValue(env.ZOOM_CLIENT_SECRET) &&
+        isConfiguredValue(env.ZOOM_SDK_KEY) &&
+        isConfiguredValue(env.ZOOM_SDK_SECRET)
           ? "ok"
           : "missing",
     };

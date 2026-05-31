@@ -30,9 +30,10 @@ Evidence:
 - OTP email verification flow exists and was externally tested through CSRF-protected registration up to the Resend send step.
 - Academy names are now escaped before they are inserted into the OTP email HTML.
 - Password reset by email OTP is implemented for all roles within a tenant, with generic request responses to reduce account enumeration risk.
+- Resend configuration now rejects placeholder sender domains such as `your-domain.com` before attempting production sends.
 
 Remaining:
-- Configure a verified Resend sender/domain in Render: `RESEND_API_KEY` and `EMAIL_FROM`.
+- Configure a verified Resend sender/domain in Render: replace the current placeholder `EMAIL_FROM` domain with a domain verified in Resend.
 - Add focused automated tests for CSRF rejection/acceptance and tenant isolation.
 
 ## Phase 2 - Teacher Dashboard
@@ -143,6 +144,7 @@ Status: partially implemented.
 Evidence:
 - Helmet, explicit CORS, global rate limiting, Redis cache for lesson/video list, health checks, graceful shutdown, and startup retries for PostgreSQL/Redis exist.
 - `/api/readiness` reports production dependency readiness for database, Redis, Resend, Cloudflare, Chérgily, and Zoom without exposing secrets.
+- `/api/readiness` distinguishes invalid Resend API credentials and rejects placeholder email sender domains as missing configuration.
 - `pnpm type-check`, `pnpm lint`, `pnpm test`, and `pnpm build` pass locally after the latest changes.
 - Remaining frontend API response casts and raw HTML rendering patterns were removed from the inspected app/package source paths.
 - A first automated API security test covers CSRF token validation and tamper rejection.
