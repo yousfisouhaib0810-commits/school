@@ -8,7 +8,7 @@
   "scripts": {
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
-    "db:deploy": "prisma db push && tsx src/apply-rls.ts",
+    "db:deploy": "tsx src/deploy.ts",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "generate": "prisma generate",

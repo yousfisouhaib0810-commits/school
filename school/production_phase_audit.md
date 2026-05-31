@@ -10,9 +10,11 @@ Evidence:
 - Monorepo, pnpm workspaces, Turborepo, shared package, database package, API and web apps exist.
 - Docker Compose includes Postgres, Redis, Mailpit, and Nginx.
 - Prisma schema exists and now includes timestamps and soft-delete fields for tenant business models.
+- Versioned Prisma migrations now exist, and `db:deploy` uses `prisma migrate deploy` plus RLS application instead of `prisma db push`.
+- The database deploy script safely baselines an existing `db push` database only when Prisma detects no schema drift.
 
 Remaining:
-- Replace `db push` deployment with versioned Prisma migrations before serious production scale.
+- Verify the first Render deployment after the migration switch and investigate manually if the safe baseline refuses drift.
 
 ## Phase 1 - Security And Multi-Tenancy
 
