@@ -47,9 +47,10 @@ Evidence:
 - Drag-and-drop reorder endpoints were fixed so `/reorder` is not shadowed by `/:id`.
 - Soft delete is now used for subject/stage/lesson deletion.
 - Subject, stage, and lesson management now use inline forms and in-app delete confirmation instead of browser `prompt`/`confirm`.
+- Automated API tests now verify subject, stage, and lesson reorder requests stay scoped to the authenticated tenant.
 
 Remaining:
-- Add focused tests for tenant isolation and reorder behaviour.
+- Add broader CRUD tests for subject/stage/lesson creation, update, and soft-delete behaviour.
 
 ## Phase 3 - Protected Video
 
