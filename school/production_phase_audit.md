@@ -64,10 +64,11 @@ Evidence:
 - Production playback supports Cloudflare Stream signed iframe URLs when signing key env vars are configured.
 - Student playback now renders the signed Cloudflare iframe URL instead of treating it as a raw video file.
 - Watermark UI exists.
+- Automated API tests now verify upload metadata validation and tenant-scoped playback token issuance.
 
 Remaining:
 - Configure `CLOUDFLARE_STREAM_SIGNING_KEY_ID`, `CLOUDFLARE_STREAM_SIGNING_PRIVATE_KEY`, and Cloudflare Stream account/customer settings in Render.
-- Add an automated integration test for upload metadata validation and tenant-scoped playback token issuance.
+- Add a Cloudflare-configured integration test for the signed production playback URL path.
 
 ## Phase 4 - Live Sessions
 
