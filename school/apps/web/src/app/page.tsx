@@ -45,12 +45,12 @@ const features = [
   },
   {
     title: "فيديو محمي",
-    text: "رفع عبر Cloudflare Stream وروابط تشغيل موقعة بعلامات مائية.",
+    text: "رفع عبر Cloudflare Stream وروابط تشغيل موقعة للحد من الوصول المباشر.",
     icon: Video,
   },
   {
     title: "حصص مباشرة",
-    text: "جلسات مباشرة مرتبطة بالدروس مع تحكم في الوصول.",
+    text: "جلسات مباشرة مرتبطة بالدروس مع تحكم في الوصول للطلاب.",
     icon: Radio,
   },
   {
@@ -62,7 +62,7 @@ const features = [
 
 function PlatformHome() {
   return (
-    <main className="min-h-screen bg-[#f7f4ec] text-[#161c18]">
+    <main className="min-h-screen bg-[#f7f4ec] text-[#161c18]" dir="rtl">
       <section className="mx-auto flex min-h-[92vh] w-full max-w-7xl flex-col px-5 py-6 sm:px-8">
         <nav className="flex items-center justify-between gap-4 border-b border-[#ded6c3] pb-5">
           <Link href="/" className="text-lg font-black tracking-tight">
@@ -87,8 +87,8 @@ function PlatformHome() {
               أنشئ أكاديميتك، انشر دروسك، وابدأ استقبال الطلاب بأمان.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-[#5d635c]">
-              صفحة تسجيل، لوحة إدارة، محتوى تعليمي، فيديو محمي، حصص مباشرة، واشتراكات في نظام واحد مصمم للعمل كمنتج
-              SaaS حقيقي.
+              صفحة هبوط، تسجيل حساب، لوحة إدارة، محتوى تعليمي، فيديو محمي، حصص مباشرة، واشتراكات في نظام واحد
+              مصمم ليعمل كمنتج SaaS حقيقي.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
@@ -148,7 +148,7 @@ export default async function HomePage() {
   if (!landingPage || !landingPage.published) {
     if (!landingPage) return notFound();
     return (
-      <div className="flex min-h-screen items-center justify-center px-6 text-center">
+      <div className="flex min-h-screen items-center justify-center px-6 text-center" dir="rtl">
         <h1 className="text-2xl font-bold">هذه الأكاديمية غير منشورة بعد.</h1>
       </div>
     );

@@ -46,11 +46,32 @@ function isSameHash(left: string, right: string): boolean {
   return crypto.timingSafeEqual(leftBuffer, rightBuffer);
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => {
+    switch (character) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#39;";
+      default:
+        return character;
+    }
+  });
+}
+
 function buildVerificationEmail(code: string, academyName: string): string {
+  const safeAcademyName = escapeHtml(academyName);
+
   return `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
       <h1 style="font-size:24px;margin-bottom:12px">Verify your School Platform account</h1>
-      <p>Your verification code for ${academyName} is:</p>
+      <p>Your verification code for ${safeAcademyName} is:</p>
       <p style="font-size:32px;font-weight:700;letter-spacing:6px;margin:24px 0">${code}</p>
       <p>This code expires in ${OTP_TTL_MINUTES} minutes. If you did not request this, ignore this email.</p>
     </div>

@@ -44,8 +44,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="rounded-2xl bg-white p-8 shadow-lg">
-      <h1 className="mb-6 text-center text-2xl font-bold">تسجيل الدخول</h1>
+    <div className="rounded-lg border border-[#ded6c3] bg-white p-8 shadow-xl">
+      <h1 className="mb-2 text-center text-2xl font-black text-[#161c18]">تسجيل الدخول</h1>
+      <p className="mb-6 text-center text-sm leading-6 text-[#5d635c]">
+        أدخل بريدك ونطاق الأكاديمية للوصول إلى لوحة التحكم.
+      </p>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
         <div>
@@ -58,7 +61,8 @@ export default function LoginPage() {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             required
-            className="w-full rounded-lg border border-border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            dir="ltr"
+            className="w-full rounded-lg border border-border px-4 py-2 text-left focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div>
@@ -73,7 +77,8 @@ export default function LoginPage() {
             required
             minLength={3}
             pattern="^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
-            className="w-full rounded-lg border border-border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            dir="ltr"
+            className="w-full rounded-lg border border-border px-4 py-2 text-left focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="my-academy"
           />
         </div>
@@ -88,7 +93,8 @@ export default function LoginPage() {
             onChange={(event) => setPassword(event.target.value)}
             required
             minLength={8}
-            className="w-full rounded-lg border border-border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            dir="ltr"
+            className="w-full rounded-lg border border-border px-4 py-2 text-left focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <button

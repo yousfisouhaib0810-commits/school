@@ -58,10 +58,10 @@ function VerifyEmailForm() {
   }
 
   return (
-    <div className="rounded-2xl bg-white p-8 shadow-lg">
-      <h1 className="mb-2 text-center text-2xl font-bold">تأكيد البريد الإلكتروني</h1>
-      <p className="mb-6 text-center text-sm text-muted-foreground">
-        أدخل رمز التحقق المرسل إلى {email || "بريدك الإلكتروني"}.
+    <div className="rounded-lg border border-[#ded6c3] bg-white p-8 shadow-xl">
+      <h1 className="mb-2 text-center text-2xl font-black text-[#161c18]">تأكيد البريد الإلكتروني</h1>
+      <p className="mb-6 text-center text-sm leading-6 text-[#5d635c]">
+        أدخل رمز التحقق المكوّن من 6 أرقام والمرسل إلى {email || "بريدك الإلكتروني"}.
       </p>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
@@ -78,6 +78,7 @@ function VerifyEmailForm() {
             required
             minLength={6}
             maxLength={6}
+            dir="ltr"
             className="w-full rounded-lg border border-border px-4 py-2 text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="000000"
           />
@@ -104,7 +105,7 @@ function VerifyEmailForm() {
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={<div className="rounded-2xl bg-white p-8 text-center shadow-lg">جار التحميل...</div>}>
+    <Suspense fallback={<div className="rounded-lg bg-white p-8 text-center shadow-lg">جار التحميل...</div>}>
       <VerifyEmailForm />
     </Suspense>
   );
