@@ -27,7 +27,7 @@ import superAdminRoutes from "./routes/super-admin/route.js";
 const REDIS_CHECK_TIMEOUT_MS = 2_000;
 const EXTERNAL_READINESS_TIMEOUT_MS = 3_000;
 const DEFAULT_PRODUCTION_WEB_ORIGINS = new Set(["https://school-mu-one.vercel.app"]);
-type ReadinessValue = "ok" | "missing" | "error" | "unverified_domain";
+type ReadinessValue = "ok" | "missing" | "error" | "invalid_api_key" | "unverified_domain";
 
 const resendDomainsResponseSchema = z.object({
   data: z.array(
@@ -70,7 +70,7 @@ async function checkResendReadiness(): Promise<ReadinessValue> {
     });
 
     if (!response.ok) {
-      return "error";
+      return response.status === 401 || response.status === 403 ? "invalid_api_key" : "error";
     }
 
     const domains = resendDomainsResponseSchema.parse(await response.json());

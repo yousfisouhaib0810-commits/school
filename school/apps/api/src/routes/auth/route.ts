@@ -178,7 +178,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         academyName: result.tenant.name,
       });
     } catch (error) {
-      request.log.error({ error, tenantId: result.tenant.id }, "Failed to send verification email");
+      request.log.error({ err: error, tenantId: result.tenant.id }, "Failed to send verification email");
       await fastify.prisma.$transaction([
         fastify.prisma.emailVerification.updateMany({
           where: { tenantId: result.tenant.id },
@@ -299,7 +299,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
           academyName: tenant.name,
         });
       } catch (error) {
-        request.log.warn({ error, tenantId: tenant.id }, "Verification resend failed");
+        request.log.warn({ err: error, tenantId: tenant.id }, "Verification resend failed");
       }
 
       return { success: true };
@@ -347,7 +347,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
           academyName: tenant.name,
         });
       } catch (error) {
-        request.log.error({ error, tenantId: tenant.id }, "Failed to send password reset email");
+        request.log.error({ err: error, tenantId: tenant.id }, "Failed to send password reset email");
       }
 
       return { success: true };

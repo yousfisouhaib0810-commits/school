@@ -38,6 +38,6 @@ export async function sendEmail(options: SendEmailOptions): Promise<void> {
 
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as ResendErrorResponse;
-    throw new Error(body.message ?? "Failed to send email");
+    throw new Error(`Failed to send email via Resend (${response.status}): ${body.message ?? response.statusText}`);
   }
 }
