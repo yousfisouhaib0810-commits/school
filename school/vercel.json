@@ -1,5 +1,1 @@
-{
-  "buildCommand": "pnpm --filter @school/shared run build && pnpm --filter @school/web run build",
-  "outputDirectory": "apps/web/.next",
-  "installCommand": "pnpm install"
-}
+{}
