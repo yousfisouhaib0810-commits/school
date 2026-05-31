@@ -29,9 +29,10 @@ Evidence:
 - Auth routes are rate-limited.
 - OTP email verification flow exists and was externally tested through CSRF-protected registration up to the Resend send step.
 - Academy names are now escaped before they are inserted into the OTP email HTML.
+- Password reset by email OTP is implemented for all roles within a tenant, with generic request responses to reduce account enumeration risk.
 
 Remaining:
-- Configure a verified Resend sender in Render: `RESEND_API_KEY` and `EMAIL_FROM`.
+- Configure a verified Resend sender/domain in Render: `RESEND_API_KEY` and `EMAIL_FROM`.
 - Add focused automated tests for CSRF rejection/acceptance and tenant isolation.
 
 ## Phase 2 - Teacher Dashboard

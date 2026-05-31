@@ -21,6 +21,7 @@ model Tenant {
 
   users         User[]
   emailVerifications EmailVerification[]
+  passwordResets PasswordReset[]
   subjects      Subject[]
   landingPages  LandingPage[]
   liveSessions  LiveSession[]
@@ -64,6 +65,7 @@ model User {
   progress     VideoProgress[]
   subscriptions Subscription[]
   emailVerifications EmailVerification[]
+  passwordResets PasswordReset[]
 
   @@unique([email, tenantId], name: "email_tenantId")
   @@index([tenantId])
@@ -86,6 +88,27 @@ model EmailVerification {
   user   User   @relation(fields: [userId], references: [id])
 
   @@index([tenantId, email])
+  @@index([tenantId, userId])
+  @@index([tenantId, consumedAt, expiresAt])
+}
+
+model PasswordReset {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @db.Uuid
+  userId     String    @db.Uuid
+  email      String
+  codeHash   String
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, email, consumedAt])
   @@index([tenantId, userId])
   @@index([tenantId, consumedAt, expiresAt])
 }

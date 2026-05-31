@@ -10,6 +10,8 @@ const PUBLIC_PATH_PREFIXES = [
   "/api/auth/register",
   "/api/auth/verify-email",
   "/api/auth/resend-verification",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
   "/api/auth/refresh",
   "/api/auth/session",
   "/api/webhooks/chargily",

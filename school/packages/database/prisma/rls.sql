@@ -23,6 +23,12 @@ CREATE POLICY tenant_isolation_on_emailverification ON "EmailVerification"
   USING ("tenantId" = app.current_tenant_id())
   WITH CHECK ("tenantId" = app.current_tenant_id());
 
+ALTER TABLE "PasswordReset" ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_isolation_on_passwordreset ON "PasswordReset";
+CREATE POLICY tenant_isolation_on_passwordreset ON "PasswordReset"
+  USING ("tenantId" = app.current_tenant_id())
+  WITH CHECK ("tenantId" = app.current_tenant_id());
+
 ALTER TABLE "Subject" ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation_on_subject ON "Subject";
 CREATE POLICY tenant_isolation_on_subject ON "Subject"

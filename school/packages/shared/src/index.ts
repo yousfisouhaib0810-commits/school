@@ -87,6 +87,18 @@ export const resendEmailVerificationSchema = z.object({
   subdomain: registerSchema.shape.subdomain,
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+  subdomain: registerSchema.shape.subdomain,
+});
+
+export const resetPasswordSchema = z.object({
+  email: z.string().email(),
+  subdomain: registerSchema.shape.subdomain,
+  code: z.string().regex(/^\d{6}$/),
+  password: loginSchema.shape.password,
+});
+
 export const authVerifyEmailResponseSchema = authSessionResponseSchema.extend({
   tenant: z.object({
     id: z.string().uuid(),
@@ -216,6 +228,8 @@ export type AuthSessionBootstrapResponse = z.infer<typeof authSessionBootstrapRe
 export type AuthRegisterResponse = z.infer<typeof authRegisterResponseSchema>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type ResendEmailVerificationInput = z.infer<typeof resendEmailVerificationSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type AuthVerifyEmailResponse = z.infer<typeof authVerifyEmailResponseSchema>;
 export type TenantUpdateInput = z.infer<typeof tenantUpdateSchema>;
 export type SubjectInput = z.infer<typeof subjectSchema>;

@@ -22,6 +22,17 @@ describe("tenant plugin public paths", () => {
     assert.deepEqual(response.json(), { status: "ok" });
   });
 
+  it("allows password reset requests without a tenant header", async () => {
+    const app = Fastify();
+    await app.register(tenantPlugin);
+    app.post("/api/auth/forgot-password", async () => ({ success: true }));
+
+    const response = await app.inject({ method: "POST", url: "/api/auth/forgot-password" });
+
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual(response.json(), { success: true });
+  });
+
   it("rejects tenant-scoped paths without a tenant header", async () => {
     const app = Fastify();
     await app.register(tenantPlugin);

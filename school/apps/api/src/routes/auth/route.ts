@@ -1,8 +1,10 @@
 import { FastifyPluginAsync } from "fastify";
 import {
+  forgotPasswordSchema,
   loginSchema,
   registerSchema,
   resendEmailVerificationSchema,
+  resetPasswordSchema,
   verifyEmailSchema,
 } from "@school/shared";
 import * as argon2 from "argon2";
@@ -18,6 +20,10 @@ import {
   resendEmailVerification,
   verifyEmailCode,
 } from "../../services/email-verification.js";
+import {
+  createAndSendPasswordReset,
+  resetPasswordWithCode,
+} from "../../services/password-reset.js";
 import { isEmailServiceConfigured } from "../../services/email.js";
 import { createCsrfToken } from "../../lib/csrf.js";
 import { env } from "../../env.js";
@@ -296,6 +302,89 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         request.log.warn({ error, tenantId: tenant.id }, "Verification resend failed");
       }
 
+      return { success: true };
+    }
+  );
+
+  fastify.post(
+    "/forgot-password",
+    {
+      config: {
+        rateLimit: { max: 3, timeWindow: "1 minute" },
+      },
+    },
+    async (request, reply) => {
+      const body = forgotPasswordSchema.parse(request.body);
+
+      if (!isEmailServiceConfigured()) {
+        request.log.error("Email service is not configured");
+        return reply.status(503).send({ error: "Password reset email service is not configured" });
+      }
+
+      const tenant = await fastify.prisma.tenant.findFirst({
+        where: { subdomain: body.subdomain, deletedAt: null },
+        select: { id: true, name: true, status: true },
+      });
+
+      if (!tenant || tenant.status === "SUSPENDED") {
+        return { success: true };
+      }
+
+      const user = await fastify.prisma.user.findUnique({
+        where: { email_tenantId: { email: body.email, tenantId: tenant.id } },
+        select: { id: true, email: true, emailVerifiedAt: true, deletedAt: true },
+      });
+
+      if (!user || user.deletedAt || !user.emailVerifiedAt) {
+        return { success: true };
+      }
+
+      try {
+        await createAndSendPasswordReset(fastify.prisma, {
+          tenantId: tenant.id,
+          userId: user.id,
+          email: user.email,
+          academyName: tenant.name,
+        });
+      } catch (error) {
+        request.log.error({ error, tenantId: tenant.id }, "Failed to send password reset email");
+      }
+
+      return { success: true };
+    }
+  );
+
+  fastify.post(
+    "/reset-password",
+    {
+      config: {
+        rateLimit: { max: 5, timeWindow: "1 minute" },
+      },
+    },
+    async (request, reply) => {
+      const body = resetPasswordSchema.parse(request.body);
+      const tenant = await fastify.prisma.tenant.findFirst({
+        where: { subdomain: body.subdomain, deletedAt: null },
+        select: { id: true, status: true },
+      });
+
+      if (!tenant || tenant.status === "SUSPENDED") {
+        return reply.status(400).send({ error: "Invalid or expired password reset code" });
+      }
+
+      try {
+        await resetPasswordWithCode(fastify.prisma, {
+          tenantId: tenant.id,
+          email: body.email,
+          code: body.code,
+          password: body.password,
+        });
+      } catch {
+        return reply.status(400).send({ error: "Invalid or expired password reset code" });
+      }
+
+      reply.clearCookie("accessToken", { path: "/" });
+      reply.clearCookie("refreshToken", { path: "/api/auth" });
       return { success: true };
     }
   );
