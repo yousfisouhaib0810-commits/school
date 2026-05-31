@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { z } from "zod";
-import { apiClient } from "@/lib/api";
 import { VideoPlayer } from "@/components/shared/VideoPlayer";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import Link from "next/link";
+import { StudentEmptyState, StudentErrorState, StudentLoadingState } from "@/components/student/StudentStates";
 import { Button } from "@/components/ui/button";
+import { apiClient } from "@/lib/api";
+
+const routeParamsSchema = z.object({
+  lessonId: z.string().uuid(),
+});
 
 const lessonDetailsSchema = z.object({
   id: z.string().uuid(),
@@ -34,104 +37,142 @@ type ProgressResponse = z.infer<typeof progressResponseSchema>;
 
 export default function LessonPage() {
   const params = useParams();
-  const lessonId = params.lessonId as string;
-  
+  const parsedParams = routeParamsSchema.safeParse(params);
+  const lessonId = parsedParams.success ? parsedParams.data.lessonId : "";
+
   const [lesson, setLesson] = useState<LessonDetails | null>(null);
   const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
   const [initialProgress, setInitialProgress] = useState<ProgressResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(parsedParams.success ? null : "رابط الدرس غير صالح.");
 
-  useEffect(() => {
-    async function fetchLessonAndToken() {
-      try {
-        const lessonsRes = await apiClient<LessonDetails[]>("/api/video", {
-          parse: (raw: unknown) => lessonsResponseSchema.parse(raw)
-        });
-
-        if (lessonsRes.error || !lessonsRes.data) {
-          throw new Error("فشل تحميل الدرس");
-        }
-
-        const foundLesson = lessonsRes.data.find(l => l.id === lessonId);
-        if (!foundLesson) {
-           throw new Error("الدرس غير موجود");
-        }
-
-        setLesson(foundLesson);
-
-        const progressRes = await apiClient<ProgressResponse>(`/api/video/${lessonId}/progress`, {
-           parse: (raw: unknown) => progressResponseSchema.parse(raw)
-        });
-        if (!progressRes.error && progressRes.data) {
-           setInitialProgress(progressRes.data);
-        }
-
-        if (foundLesson.videoUid) {
-           const tokenRes = await apiClient<z.infer<typeof playbackTokenResponseSchema>>(`/api/video/${foundLesson.videoUid}/playback-token`, {
-             parse: (raw: unknown) => playbackTokenResponseSchema.parse(raw)
-           });
-           
-           if (tokenRes.data?.url) {
-              setPlaybackUrl(tokenRes.data.url);
-           }
-        }
-      } catch (err: unknown) {
-        toast.error(err instanceof Error ? err.message : "تعذر تحميل بيانات الدرس");
-      } finally {
-        setLoading(false);
-      }
+  const fetchLessonAndToken = useCallback(async () => {
+    if (!lessonId) {
+      setLoading(false);
+      return;
     }
 
-    if (lessonId) {
-      void fetchLessonAndToken();
+    setLoading(true);
+    setError(null);
+    setPlaybackUrl(null);
+
+    try {
+      const lessonsResponse = await apiClient<LessonDetails[]>("/api/video", {
+        parse: (raw: unknown) => lessonsResponseSchema.parse(raw),
+      });
+
+      if (lessonsResponse.error || !lessonsResponse.data) {
+        throw new Error(lessonsResponse.error ?? "تعذر تحميل قائمة الدروس.");
+      }
+
+      const foundLesson = lessonsResponse.data.find((item) => item.id === lessonId);
+      if (!foundLesson) {
+        setLesson(null);
+        return;
+      }
+
+      setLesson(foundLesson);
+
+      const progressResponse = await apiClient<ProgressResponse>(`/api/video/${lessonId}/progress`, {
+        parse: (raw: unknown) => progressResponseSchema.parse(raw),
+      });
+      if (!progressResponse.error && progressResponse.data) {
+        setInitialProgress(progressResponse.data);
+      }
+
+      if (foundLesson.videoUid) {
+        const tokenResponse = await apiClient<z.infer<typeof playbackTokenResponseSchema>>(
+          `/api/video/${foundLesson.videoUid}/playback-token`,
+          { parse: (raw: unknown) => playbackTokenResponseSchema.parse(raw) }
+        );
+
+        if (tokenResponse.error) {
+          throw new Error(tokenResponse.error);
+        }
+
+        if (tokenResponse.data?.url) {
+          setPlaybackUrl(tokenResponse.data.url);
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "تعذر تحميل بيانات الدرس.");
+    } finally {
+      setLoading(false);
     }
   }, [lessonId]);
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void fetchLessonAndToken();
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchLessonAndToken]);
+
   if (loading) {
     return (
-      <div className="flex p-12 justify-center items-center min-h-[400px]">
-        <Loader2 className="animate-spin h-8 w-8 text-muted-foreground cursor-wait" />
+      <div className="container mx-auto max-w-4xl py-8">
+        <StudentLoadingState title="جاري تحميل الدرس" description="نراجع صلاحية الوصول ونجهز رابط الفيديو الآمن." />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto max-w-4xl py-8">
+        <StudentErrorState
+          title="تعذر فتح الدرس"
+          description={error}
+          actionLabel="إعادة المحاولة"
+          onAction={() => void fetchLessonAndToken()}
+        />
+        <div className="mt-4 text-center">
+          <Link href="/courses">
+            <Button variant="outline">العودة إلى الدروس</Button>
+          </Link>
+        </div>
       </div>
     );
   }
 
   if (!lesson) {
     return (
-      <div className="p-12 text-center flex flex-col items-center">
-        <h2 className="text-xl font-bold mb-4">الدرس غير موجود.</h2>
-        <Link href="/courses">
-           <Button variant="outline">العودة إلى الدروس</Button>
-        </Link>
+      <div className="container mx-auto max-w-4xl py-8">
+        <StudentEmptyState title="الدرس غير موجود" description="قد يكون الدرس غير منشور أو تمت إزالته من هذه الأكاديمية." />
+        <div className="mt-4 text-center">
+          <Link href="/courses">
+            <Button variant="outline">العودة إلى الدروس</Button>
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container py-8 max-w-4xl mx-auto space-y-6">
+    <div className="container mx-auto max-w-4xl space-y-6 py-8">
       <div>
-        <Link href="/courses" className="text-primary hover:underline text-sm font-medium mb-4 inline-block">
-          &larr; العودة إلى الدروس
+        <Link href="/courses" className="mb-4 inline-block text-sm font-medium text-primary hover:underline">
+          العودة إلى الدروس
         </Link>
-        <h1 className="text-3xl font-bold mb-2">{lesson.title}</h1>
+        <h1 className="mb-2 text-3xl font-bold">{lesson.title}</h1>
         {lesson.description && <p className="text-muted-foreground">{lesson.description}</p>}
       </div>
 
       {!lesson.videoUid ? (
-        <div className="bg-muted px-12 py-24 text-center rounded-xl border border-dashed border-muted-foreground/30">
-          <p className="text-muted-foreground">لم يتم ربط فيديو بهذا الدرس بعد.</p>
-        </div>
+        <StudentEmptyState title="لا يوجد فيديو بعد" description="لم يربط الأستاذ فيديو بهذا الدرس حتى الآن." />
       ) : playbackUrl ? (
-        <VideoPlayer 
-          lessonId={lesson.id} 
-          playbackUrl={playbackUrl} 
-          viewerEmail="student@subdomain.local" 
+        <VideoPlayer
+          lessonId={lesson.id}
+          playbackUrl={playbackUrl}
+          viewerEmail="student@subdomain.local"
           initialCompleted={initialProgress?.isCompleted}
         />
       ) : (
-        <div className="bg-destructive/10 text-destructive px-12 py-24 text-center rounded-xl border border-destructive">
-          <p className="font-semibold text-lg">فشل الحصول على رابط التشغيل الآمن.</p>
-          <p className="text-sm mt-2 opacity-80">قد يكون الفيديو غير مفعّل أو أن اشتراكك غير صالح.</p>
-        </div>
+        <StudentErrorState
+          title="رابط التشغيل غير متاح"
+          description="قد يكون الفيديو غير مفعل أو أن الاشتراك لا يسمح بمشاهدة هذا المحتوى."
+          actionLabel="إعادة المحاولة"
+          onAction={() => void fetchLessonAndToken()}
+        />
       )}
     </div>
   );

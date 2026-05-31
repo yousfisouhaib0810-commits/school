@@ -130,9 +130,10 @@ Evidence:
 - Course listing and lesson playback pages exist.
 - Progress endpoints exist and cache invalidation is used for lesson changes.
 - Student video playback tokens and progress updates now require a paid active tenant plan.
+- Student course, lesson, live-session, and profile screens now use clearer loading, empty, retryable error, and account-context states.
 
 Remaining:
-- Student UX needs stronger loading/error states.
+- Add browser-level student journey tests after production test users are available.
 
 ## Phase 8 - Super Admin
 
@@ -164,6 +165,7 @@ Evidence:
 - Cloudflare playback signing tests verify configured signed iframe URLs include user and tenant binding.
 - Payment tests cover Chargily checkout metadata, free-plan rejection, webhook signatures, and webhook idempotency.
 - Landing builder tests cover tenant-scoped API writes and invalid block rejection; the dashboard builder now uses controls plus preview instead of JSON editing.
+- Student portal pages now expose explicit loading, empty, and retryable error states for course, lesson, and live-session flows.
 - Tenant middleware tests now verify `/api/readiness` is public while tenant-scoped routes still reject missing tenant headers.
 
 Remaining:
