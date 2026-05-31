@@ -7,5 +7,6 @@ tsconfig.tsbuildinfo
 .env.local
 *.log
 pgdata
+backups
 
 .vercel

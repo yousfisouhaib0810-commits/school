@@ -161,6 +161,7 @@ Evidence:
 - Helmet, explicit CORS, global rate limiting, Redis cache for lesson/video list, health checks, graceful shutdown, and startup retries for PostgreSQL/Redis exist.
 - `/api/readiness` reports production dependency readiness for database, Redis, Resend, Cloudflare, Chérgily, and Zoom without exposing secrets.
 - `/api/readiness` distinguishes invalid Resend API credentials, insufficient Resend domain-check permissions, and placeholder email sender domains.
+- Database backup automation now exists through `pnpm db:backup`; it writes custom-format `pg_dump` files to `BACKUP_DIR`/`backups` without placing `DATABASE_URL` on the child process command line.
 - `pnpm type-check`, `pnpm lint`, `pnpm test`, and `pnpm build` pass locally after the latest changes.
 - Remaining frontend API response casts and raw HTML rendering patterns were removed from the inspected app/package source paths.
 - Automated API security tests cover CSRF token validation, tamper rejection, request-level enforcement, and the intended webhook exemption.
@@ -175,4 +176,5 @@ Evidence:
 
 Remaining:
 - Add broader automated tests for auth edge cases, tenant isolation, webhooks, payments, and RLS.
-- Add backup automation and observability.
+- Add scheduled production backup execution and retention outside the app runtime.
+- Add observability beyond structured logs and readiness checks.
