@@ -1,8 +1,8 @@
 import { FastifyPluginAsync } from "fastify";
 import { landingPageSchema } from "@school/shared";
+import type { Prisma } from "@school/database";
 
 export const landingRoutes: FastifyPluginAsync = async (fastify) => {
-  // Public route to get the landing page
   fastify.get("/", async (request, reply) => {
     try {
       const page = await fastify.prisma.landingPage.findFirst({
@@ -19,7 +19,6 @@ export const landingRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // Protected route to update the landing page
   fastify.put(
     "/",
     {
@@ -36,16 +35,18 @@ export const landingRoutes: FastifyPluginAsync = async (fastify) => {
           where: { tenantId: request.tenantId, deletedAt: null },
         });
 
-        // Ensure Prisma compatibility representing blocks as a JSON-serializable array
-        const blocksJson = parsed.data.blocks as unknown as NonNullable<unknown>[];
+        const blocksJson: Prisma.InputJsonValue = parsed.data.blocks;
 
         if (existing) {
-          const updated = await fastify.prisma.landingPage.update({
-            where: { id: existing.id },
+          await fastify.prisma.landingPage.updateMany({
+            where: { id: existing.id, tenantId: request.tenantId, deletedAt: null },
             data: {
               blocks: blocksJson,
               published: parsed.data.published,
             },
+          });
+          const updated = await fastify.prisma.landingPage.findFirst({
+            where: { id: existing.id, tenantId: request.tenantId, deletedAt: null },
           });
           return { data: updated };
         } else {
@@ -64,7 +65,6 @@ export const landingRoutes: FastifyPluginAsync = async (fastify) => {
     }
   );
 
-  // Protected route to get the draft/admin version
   fastify.get(
     "/admin",
     {

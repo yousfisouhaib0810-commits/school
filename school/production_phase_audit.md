@@ -115,12 +115,12 @@ Evidence:
 - Render engine supports hero, pricing, text, and CTA blocks.
 - Public and admin endpoints exist.
 - Text blocks now render as escaped text instead of raw HTML.
-- The dashboard editor now validates block JSON with the shared Zod schema before saving.
+- The dashboard editor now provides block-level controls, live preview, validation messaging, draft save, and publish actions instead of requiring raw JSON edits.
+- Landing page updates now use tenant-scoped write filters, and automated API tests verify public published reads, tenant-scoped draft updates, and invalid block rejection before writes.
 - The platform landing page and auth pages now render Arabic/RTL copy correctly in production.
 
 Remaining:
-- Current dashboard editor is JSON-level, not a production page builder.
-- Add block-level UI controls, preview, validation messages, and draft/publish workflow.
+- Add browser-level landing builder workflow tests after production test users are available.
 
 ## Phase 7 - Student Portal
 
@@ -163,6 +163,7 @@ Evidence:
 - Teacher dashboard API tests cover CRUD, soft-delete, reorder, tenant ownership checks, and lesson cache invalidation.
 - Cloudflare playback signing tests verify configured signed iframe URLs include user and tenant binding.
 - Payment tests cover Chargily checkout metadata, free-plan rejection, webhook signatures, and webhook idempotency.
+- Landing builder tests cover tenant-scoped API writes and invalid block rejection; the dashboard builder now uses controls plus preview instead of JSON editing.
 - Tenant middleware tests now verify `/api/readiness` is public while tenant-scoped routes still reject missing tenant headers.
 
 Remaining:
