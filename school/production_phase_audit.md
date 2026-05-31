@@ -27,8 +27,11 @@ Evidence:
 - `/api/auth/session` now hydrates the frontend user from the httpOnly access-token cookie after page refresh.
 - Tenant routes include app-level `tenantId` filters and RLS policies exist.
 - Auth routes are rate-limited.
+- OTP email verification flow exists and was externally tested through CSRF-protected registration up to the Resend send step.
+- Academy names are now escaped before they are inserted into the OTP email HTML.
 
 Remaining:
+- Configure a verified Resend sender in Render: `RESEND_API_KEY` and `EMAIL_FROM`.
 - Add focused automated tests for CSRF rejection/acceptance and tenant isolation.
 
 ## Phase 2 - Teacher Dashboard
@@ -100,6 +103,7 @@ Evidence:
 - Public and admin endpoints exist.
 - Text blocks now render as escaped text instead of raw HTML.
 - The dashboard editor now validates block JSON with the shared Zod schema before saving.
+- The platform landing page and auth pages now render Arabic/RTL copy correctly in production.
 
 Remaining:
 - Current dashboard editor is JSON-level, not a production page builder.
