@@ -261,6 +261,8 @@ model LiveSession {
   id            String   @id @default(uuid()) @db.Uuid
   tenantId      String   @db.Uuid
   title         String
+  jitsiRoomName String?
+  jitsiJoinUrl  String?
   zoomMeetingId String
   zoomJoinUrl   String?
   zoomPassword  String?
@@ -273,4 +275,5 @@ model LiveSession {
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId, deletedAt])
+  @@index([tenantId, jitsiRoomName])
 }

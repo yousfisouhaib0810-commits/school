@@ -28,7 +28,7 @@ export default function BillingPage() {
            <p className="text-3xl font-bold mb-4">5000 DZD<span className="text-sm font-normal text-muted-foreground"> / month</span></p>
            <ul className="space-y-3 mb-6">
               <li className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-500" /> Full Classes Access</li>
-              <li className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-500" /> Live Zoom Seminars</li>
+              <li className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-500" /> Live Jitsi Seminars</li>
               <li className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-500" /> PDF Downloads</li>
            </ul>
            <PaymentButton plan={Plan.PRO} label="Upgrade with Chargily ePay (CIB / EDAHABIA)" />

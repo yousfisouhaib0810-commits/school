@@ -19,11 +19,9 @@ const envSchema = z.object({
   CHARGILY_API_URL: z.string().url().default("https://pay.chargily.net/api/v2/checkouts"),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
-  ZOOM_ACCOUNT_ID: z.string().optional(),
-  ZOOM_CLIENT_ID: z.string().optional(),
-  ZOOM_CLIENT_SECRET: z.string().optional(),
-  ZOOM_SDK_KEY: z.string().optional(),
-  ZOOM_SDK_SECRET: z.string().optional(),
+  JITSI_DOMAIN: z.string().optional(),
+  JITSI_APP_ID: z.string().optional(),
+  JITSI_APP_SECRET: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

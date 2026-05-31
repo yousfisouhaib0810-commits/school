@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { z } from "zod";
-import ZoomMeetingViewer from "@/components/shared/ZoomMeetingViewer";
+import JitsiMeetingViewer from "@/components/shared/JitsiMeetingViewer";
 import { StudentErrorState, StudentLoadingState } from "@/components/student/StudentStates";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/lib/api";
@@ -14,10 +14,12 @@ const liveParamsSchema = z.object({
 });
 
 const liveSignatureSchema = z.object({
-  zoomMeetingId: z.string().min(1),
-  zoomPassword: z.string(),
-  signature: z.string().min(1),
-  sdkKey: z.string().min(1),
+  provider: z.literal("jitsi"),
+  domain: z.string().min(1),
+  roomName: z.string().min(1),
+  joinUrl: z.string().url(),
+  jwt: z.string().min(1),
+  isModerator: z.boolean(),
 });
 
 type LiveSignature = z.infer<typeof liveSignatureSchema>;
@@ -91,11 +93,10 @@ export default function StudentLiveRoomPage() {
   return (
     <div className="flex min-h-screen flex-col items-center bg-neutral-950 p-6">
       <h1 className="mb-6 text-2xl font-bold text-white">الحصة المباشرة</h1>
-      <ZoomMeetingViewer
-        meetingNumber={sessionData.zoomMeetingId}
-        password={sessionData.zoomPassword}
-        signature={sessionData.signature}
-        sdkKey={sessionData.sdkKey}
+      <JitsiMeetingViewer
+        domain={sessionData.domain}
+        roomName={sessionData.roomName}
+        jwt={sessionData.jwt}
         userName="Student"
         userEmail="student@example.com"
       />

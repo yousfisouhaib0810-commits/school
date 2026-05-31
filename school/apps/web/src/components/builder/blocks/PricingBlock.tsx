@@ -41,7 +41,7 @@ export function PricingBlockComponent({ props }: PricingBlockProps) {
               <p className="text-4xl font-bold mb-4">{props.monthlyPrice || 5000} DZD<span className="text-sm font-normal opacity-80"> / month</span></p>
               <ul className="space-y-2 mb-6">
                 <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-300" /> Full Classes Access</li>
-                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-300" /> Live Sessions (Zoom)</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-300" /> Live Sessions (Jitsi)</li>
               </ul>
               <Link href="/register"><Button variant="secondary" className="w-full">Upgrade Pro</Button></Link>
             </div>

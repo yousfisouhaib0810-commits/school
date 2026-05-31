@@ -75,17 +75,19 @@ Remaining:
 
 ## Phase 4 - Live Sessions
 
-Status: partially implemented.
+Status: implemented, pending production Jitsi configuration.
 
 Evidence:
-- Zoom S2S meeting creation and SDK signature endpoints exist.
-- Zoom config is now environment-driven and returns 503 when missing.
+- Live sessions now use self-hosted Jitsi configuration instead of Zoom.
+- Live session creation generates tenant-bound Jitsi rooms without calling an external meeting API.
+- Student and staff room access returns short-lived, room-bound Jitsi JWTs signed with `JITSI_APP_SECRET`.
 - Tenant filters and pagination limits are applied.
-- Student live-session signatures now require a paid active tenant plan; staff roles remain allowed for hosting/admin workflows.
+- Student live-session tokens require a paid active tenant plan; staff roles remain allowed for hosting/admin workflows.
 - Live-session creation now writes a tenant-scoped audit log.
+- Automated API tests verify Jitsi session creation, room-bound JWT claims, and cross-tenant denial.
 
 Remaining:
-- The original project requirement mentions Jitsi, while current implementation uses Zoom. This needs a product decision.
+- Configure `JITSI_DOMAIN`, `JITSI_APP_ID`, and `JITSI_APP_SECRET` in Render for the self-hosted Jitsi deployment.
 
 ## Phase 5 - Payments
 
@@ -163,7 +165,7 @@ Status: partially implemented.
 
 Evidence:
 - Helmet, explicit CORS, global rate limiting, Redis cache for lesson/video list, health checks, graceful shutdown, and startup retries for PostgreSQL/Redis exist.
-- `/api/readiness` reports production dependency readiness for database, Redis, Resend, Cloudflare, Chérgily, and Zoom without exposing secrets.
+- `/api/readiness` reports production dependency readiness for database, Redis, Resend, Cloudflare, Chérgily, and Jitsi without exposing secrets.
 - `/api/readiness` distinguishes invalid Resend API credentials, insufficient Resend domain-check permissions, and placeholder email sender domains.
 - Database backup automation now exists through `pnpm db:backup`; it writes custom-format `pg_dump` files to `BACKUP_DIR`/`backups` without placing `DATABASE_URL` on the child process command line.
 - `pnpm type-check`, `pnpm lint`, `pnpm test`, and `pnpm build` pass locally after the latest changes.
@@ -172,6 +174,7 @@ Evidence:
 - Auth tenant-isolation tests cover login lookup and session bootstrap tenant filters.
 - Teacher dashboard API tests cover CRUD, soft-delete, reorder, tenant ownership checks, and lesson cache invalidation.
 - Cloudflare playback signing tests verify configured signed iframe URLs include user and tenant binding.
+- Jitsi live-session tests verify tenant-scoped room creation and signed room-bound access tokens.
 - Payment tests cover Chargily checkout metadata, free-plan rejection, webhook signatures, and webhook idempotency.
 - Landing builder tests cover tenant-scoped API writes and invalid block rejection; the dashboard builder now uses controls plus preview instead of JSON editing.
 - Student portal pages now expose explicit loading, empty, and retryable error states for course, lesson, and live-session flows.

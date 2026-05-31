@@ -85,7 +85,7 @@ export default function AdminLiveSessionsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Live Sessions</h1>
-        <p className="text-muted-foreground">Manage your secure Zoom live sessions.</p>
+        <p className="text-muted-foreground">Manage secure Jitsi Meet live sessions.</p>
       </div>
 
       <div className="bg-card border rounded-lg p-6 max-w-xl">
@@ -110,7 +110,7 @@ export default function AdminLiveSessionsPage() {
             />
           </div>
           <Button type="submit" className="w-full">
-            <Plus className="mr-2 h-4 w-4" /> Schedule Secure Zoom Match
+            <Plus className="mr-2 h-4 w-4" /> Schedule Secure Jitsi Session
           </Button>
         </form>
       </div>

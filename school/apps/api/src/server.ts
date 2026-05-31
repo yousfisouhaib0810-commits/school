@@ -205,12 +205,10 @@ async function bootstrap() {
           ? "ok"
           : "missing",
       chargily: isConfiguredValue(env.CHARGILY_SECRET_KEY) ? "ok" : "missing",
-      zoom:
-        isConfiguredValue(env.ZOOM_ACCOUNT_ID) &&
-        isConfiguredValue(env.ZOOM_CLIENT_ID) &&
-        isConfiguredValue(env.ZOOM_CLIENT_SECRET) &&
-        isConfiguredValue(env.ZOOM_SDK_KEY) &&
-        isConfiguredValue(env.ZOOM_SDK_SECRET)
+      jitsi:
+        isConfiguredValue(env.JITSI_DOMAIN) &&
+        isConfiguredValue(env.JITSI_APP_ID) &&
+        isConfiguredValue(env.JITSI_APP_SECRET)
           ? "ok"
           : "missing",
     };
