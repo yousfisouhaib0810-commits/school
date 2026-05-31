@@ -1,7 +1,7 @@
 import { FastifyPluginAsync } from "fastify";
 import { checkoutSessionSchema } from "@school/shared";
+import { env } from "../../env.js";
 
-const CHARGILY_SECRET_KEY = process.env.CHARGILY_SECRET_KEY || "test_sk_mock";
 const CHARGILY_API_URL = "https://pay.chargily.net/test/api/v2/checkouts";
 
 export const paymentsRoute: FastifyPluginAsync = async (fastify) => {
@@ -25,11 +25,16 @@ export const paymentsRoute: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: "Cannot checkout free plan" });
       }
 
+      if (!env.CHARGILY_SECRET_KEY) {
+        request.log.error("Chargily secret key is not configured");
+        return reply.status(503).send({ error: "Payment gateway is not configured" });
+      }
+
       try {
         const response = await fetch(CHARGILY_API_URL, {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${CHARGILY_SECRET_KEY}`,
+            "Authorization": `Bearer ${env.CHARGILY_SECRET_KEY}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({

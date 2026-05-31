@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
-import { clearAccessToken } from "@/lib/auth";
+import { clearAccessToken, clearTenantSubdomain } from "@/lib/auth";
 
 const NAV_ITEMS = [
   { href: "/", label: "لوحة التحكم", icon: LayoutDashboard },
@@ -35,6 +35,7 @@ export function Sidebar() {
 
   const handleLogout = () => {
     clearAccessToken();
+    clearTenantSubdomain();
     logout();
     router.push("/login");
   };

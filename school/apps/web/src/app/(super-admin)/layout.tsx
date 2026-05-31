@@ -3,9 +3,6 @@ import { type ReactNode } from "react";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 
-// For super-admin we check the JWT here directly (or we could use an API route)
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "fallback_secret_for_dev_only");
-
 export default async function SuperAdminLayout({
   children,
 }: {
@@ -18,8 +15,14 @@ export default async function SuperAdminLayout({
     redirect("/login");
   }
 
+  if (!process.env.JWT_SECRET) {
+    redirect("/login");
+  }
+
+  const jwtSecret = new TextEncoder().encode(process.env.JWT_SECRET);
+
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, jwtSecret);
     if (payload.role !== "SUPER_ADMIN") {
       redirect("/login"); // or 403 route
     }

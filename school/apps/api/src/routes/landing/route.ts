@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from "fastify";
-import { landingPageSchema, LandingPageBlock } from "@school/shared";
+import { landingPageSchema } from "@school/shared";
 
 export const landingRoutes: FastifyPluginAsync = async (fastify) => {
   // Public route to get the landing page

@@ -36,7 +36,7 @@ export function VideoPlayer({ lessonId, playbackUrl, viewerEmail = "student@scho
         body: JSON.stringify({ secondsWatched: seconds, isCompleted }),
       });
     } catch {
-      console.error("Failed to sync video progress");
+      toast.error("Failed to sync video progress");
     }
   }, [lessonId]);
 

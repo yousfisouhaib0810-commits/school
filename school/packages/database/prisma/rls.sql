@@ -20,6 +20,12 @@ CREATE POLICY tenant_isolation_on_user ON "User"
   USING ("tenantId" = app.current_tenant_id())
   WITH CHECK ("tenantId" = app.current_tenant_id());
 
+ALTER TABLE "EmailVerification" ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_isolation_on_emailverification ON "EmailVerification";
+CREATE POLICY tenant_isolation_on_emailverification ON "EmailVerification"
+  USING ("tenantId" = app.current_tenant_id())
+  WITH CHECK ("tenantId" = app.current_tenant_id());
+
 ALTER TABLE "Subject" ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation_on_subject ON "Subject";
 CREATE POLICY tenant_isolation_on_subject ON "Subject"

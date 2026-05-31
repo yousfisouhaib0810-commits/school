@@ -1,5 +1,10 @@
 import { FastifyPluginAsync } from "fastify";
-import { loginSchema, registerSchema } from "@school/shared";
+import {
+  loginSchema,
+  registerSchema,
+  resendEmailVerificationSchema,
+  verifyEmailSchema,
+} from "@school/shared";
 import * as argon2 from "argon2";
 import {
   generateAccessToken,
@@ -7,6 +12,12 @@ import {
   verifyRefreshToken,
   REFRESH_TOKEN_COOKIE_OPTIONS,
 } from "../../lib/tokens.js";
+import {
+  createAndSendEmailVerification,
+  resendEmailVerification,
+  verifyEmailCode,
+} from "../../services/email-verification.js";
+import { isEmailServiceConfigured } from "../../services/email.js";
 
 const authRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post(
@@ -26,6 +37,10 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
 
       if (!user) {
         return reply.status(401).send({ error: "Invalid credentials" });
+      }
+
+      if (!user.emailVerifiedAt) {
+        return reply.status(403).send({ error: "Email verification required" });
       }
 
       const valid = await argon2.verify(user.passwordHash, body.password);
@@ -66,6 +81,11 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(409).send({ error: "Subdomain already taken" });
     }
 
+    if (!isEmailServiceConfigured()) {
+      request.log.error("Email service is not configured");
+      return reply.status(503).send({ error: "Verification email service is not configured" });
+    }
+
     const result = await fastify.prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.create({
         data: { subdomain: body.subdomain, name: body.name },
@@ -85,23 +105,123 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       return { tenant, user };
     });
 
-    const tokenPayload = {
-      sub: result.user.id,
-      role: result.user.role,
-      tenantId: result.tenant.id,
-    };
-
-    const accessToken = await generateAccessToken(fastify, tokenPayload);
-    const refreshToken = await generateRefreshToken(fastify, tokenPayload);
-
-    reply.setCookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+    try {
+      await createAndSendEmailVerification(fastify.prisma, {
+        tenantId: result.tenant.id,
+        userId: result.user.id,
+        email: result.user.email,
+        academyName: result.tenant.name,
+      });
+    } catch (error) {
+      request.log.error({ error, tenantId: result.tenant.id }, "Failed to send verification email");
+      return reply.status(503).send({ error: "Verification email could not be sent" });
+    }
 
     return {
-      accessToken,
-      user: { id: result.user.id, email: result.user.email, role: result.user.role },
+      requiresEmailVerification: true,
+      email: result.user.email,
       tenant: { id: result.tenant.id, subdomain: result.tenant.subdomain },
     };
   });
+
+  fastify.post(
+    "/verify-email",
+    {
+      config: {
+        rateLimit: { max: 5, timeWindow: "1 minute" },
+      },
+    },
+    async (request, reply) => {
+      const body = verifyEmailSchema.parse(request.body);
+      const tenant = await fastify.prisma.tenant.findUnique({
+        where: { subdomain: body.subdomain },
+        select: { id: true, status: true },
+      });
+
+      if (!tenant || tenant.status === "SUSPENDED") {
+        return reply.status(400).send({ error: "Invalid or expired verification code" });
+      }
+
+      let verified;
+      try {
+        verified = await verifyEmailCode(fastify.prisma, {
+          tenantId: tenant.id,
+          email: body.email,
+          code: body.code,
+        });
+      } catch {
+        return reply.status(400).send({ error: "Invalid or expired verification code" });
+      }
+
+      const user = await fastify.prisma.user.findFirst({
+        where: { id: verified.userId, tenantId: tenant.id },
+        select: { id: true, email: true, role: true, tenantId: true },
+      });
+
+      if (!user) {
+        return reply.status(400).send({ error: "Invalid or expired verification code" });
+      }
+
+      const tokenPayload = {
+        sub: user.id,
+        role: user.role,
+        tenantId: user.tenantId,
+      };
+
+      const accessToken = await generateAccessToken(fastify, tokenPayload);
+      const refreshToken = await generateRefreshToken(fastify, tokenPayload);
+
+      reply.setCookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+
+      return {
+        accessToken,
+        user: { id: user.id, email: user.email, role: user.role },
+        tenant: { id: tenant.id, subdomain: body.subdomain },
+      };
+    }
+  );
+
+  fastify.post(
+    "/resend-verification",
+    {
+      config: {
+        rateLimit: { max: 3, timeWindow: "1 minute" },
+      },
+    },
+    async (request, _reply) => {
+      const body = resendEmailVerificationSchema.parse(request.body);
+      const tenant = await fastify.prisma.tenant.findUnique({
+        where: { subdomain: body.subdomain },
+        select: { id: true, name: true, status: true },
+      });
+
+      if (!tenant || tenant.status === "SUSPENDED") {
+        return { success: true };
+      }
+
+      const user = await fastify.prisma.user.findUnique({
+        where: { email_tenantId: { email: body.email, tenantId: tenant.id } },
+        select: { id: true, email: true, emailVerifiedAt: true },
+      });
+
+      if (!user || user.emailVerifiedAt) {
+        return { success: true };
+      }
+
+      try {
+        await resendEmailVerification(fastify.prisma, {
+          tenantId: tenant.id,
+          userId: user.id,
+          email: user.email,
+          academyName: tenant.name,
+        });
+      } catch (error) {
+        request.log.warn({ error, tenantId: tenant.id }, "Verification resend failed");
+      }
+
+      return { success: true };
+    }
+  );
 
   fastify.post(
     "/refresh",

@@ -19,6 +19,7 @@ model Tenant {
   updatedAt DateTime     @updatedAt
 
   users         User[]
+  emailVerifications EmailVerification[]
   subjects      Subject[]
   landingPages  LandingPage[]
   liveSessions  LiveSession[]
@@ -51,15 +52,38 @@ model User {
   name           String?
   role           Role     @default(STUDENT)
   chargilyId     String?
+  emailVerifiedAt DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id])
   progress     VideoProgress[]
   subscriptions Subscription[]
+  emailVerifications EmailVerification[]
 
   @@unique([email, tenantId], name: "email_tenantId")
   @@index([tenantId])
+  @@index([tenantId, emailVerifiedAt])
+}
+
+model EmailVerification {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @db.Uuid
+  userId     String    @db.Uuid
+  email      String
+  codeHash   String
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, email])
+  @@index([tenantId, userId])
+  @@index([tenantId, consumedAt, expiresAt])
 }
 
 model Subject {

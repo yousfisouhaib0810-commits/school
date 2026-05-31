@@ -59,7 +59,27 @@ export const authLoginResponseSchema = z.object({
   user: authUserSchema,
 });
 
-export const authRegisterResponseSchema = authLoginResponseSchema.extend({
+export const authRegisterResponseSchema = z.object({
+  requiresEmailVerification: z.literal(true),
+  email: z.string().email(),
+  tenant: z.object({
+    id: z.string().uuid(),
+    subdomain: registerSchema.shape.subdomain,
+  }),
+});
+
+export const verifyEmailSchema = z.object({
+  email: z.string().email(),
+  subdomain: registerSchema.shape.subdomain,
+  code: z.string().regex(/^\d{6}$/),
+});
+
+export const resendEmailVerificationSchema = z.object({
+  email: z.string().email(),
+  subdomain: registerSchema.shape.subdomain,
+});
+
+export const authVerifyEmailResponseSchema = authLoginResponseSchema.extend({
   tenant: z.object({
     id: z.string().uuid(),
     subdomain: registerSchema.shape.subdomain,
@@ -164,6 +184,9 @@ export type TokenPayload = z.infer<typeof tokenPayloadSchema>;
 export type AuthUser = z.infer<typeof authUserSchema>;
 export type AuthLoginResponse = z.infer<typeof authLoginResponseSchema>;
 export type AuthRegisterResponse = z.infer<typeof authRegisterResponseSchema>;
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+export type ResendEmailVerificationInput = z.infer<typeof resendEmailVerificationSchema>;
+export type AuthVerifyEmailResponse = z.infer<typeof authVerifyEmailResponseSchema>;
 export type TenantUpdateInput = z.infer<typeof tenantUpdateSchema>;
 export type SubjectInput = z.infer<typeof subjectSchema>;
 export type StageInput = z.infer<typeof stageSchema>;

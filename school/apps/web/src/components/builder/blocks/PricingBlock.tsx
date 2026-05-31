@@ -1,4 +1,3 @@
-import { Plan } from "@school/shared";
 import { Check } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";

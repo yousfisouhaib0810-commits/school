@@ -6,11 +6,12 @@ import { authLoginResponseSchema } from "@school/shared";
 import type { AuthLoginResponse } from "@school/shared";
 
 import { apiClient } from "@/lib/api";
-import { setAccessToken } from "@/lib/auth";
+import { setAccessToken, setTenantSubdomain } from "@/lib/auth";
 import { useAuthStore } from "@/lib/store";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
+  const [subdomain, setSubdomain] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,6 +25,7 @@ export default function LoginPage() {
 
     const { data, error: apiError } = await apiClient<AuthLoginResponse>("/api/auth/login", {
       method: "POST",
+      tenantSubdomain: subdomain,
       body: JSON.stringify({ email, password }),
       parse: (responseData) => authLoginResponseSchema.parse(responseData),
     });
@@ -31,11 +33,12 @@ export default function LoginPage() {
     setLoading(false);
 
     if (apiError || !data) {
-      setError(apiError || "Login failed");
+      setError(apiError || "فشل تسجيل الدخول");
       return;
     }
 
     setAccessToken(data.accessToken);
+    setTenantSubdomain(subdomain);
     login(data.user, data.accessToken);
     router.push("/");
   }
@@ -44,11 +47,7 @@ export default function LoginPage() {
     <div className="bg-white rounded-2xl shadow-lg p-8">
       <h1 className="text-2xl font-bold mb-6 text-center">تسجيل الدخول</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">
-            {error}
-          </div>
-        )}
+        {error && <div className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">{error}</div>}
         <div>
           <label htmlFor="email" className="block text-sm font-medium mb-1">
             البريد الإلكتروني
@@ -60,6 +59,22 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             required
             className="w-full rounded-lg border border-border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div>
+          <label htmlFor="subdomain" className="block text-sm font-medium mb-1">
+            النطاق الفرعي للأكاديمية
+          </label>
+          <input
+            id="subdomain"
+            type="text"
+            value={subdomain}
+            onChange={(e) => setSubdomain(e.target.value.toLowerCase())}
+            required
+            minLength={3}
+            pattern="^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+            className="w-full rounded-lg border border-border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            placeholder="my-academy"
           />
         </div>
         <div>
@@ -81,7 +96,7 @@ export default function LoginPage() {
           disabled={loading}
           className="w-full bg-primary text-primary-foreground rounded-lg py-2.5 font-medium hover:bg-primary/90 disabled:opacity-50"
         >
-          {loading ? "جاري التحميل..." : "تسجيل الدخول"}
+          {loading ? "جار تسجيل الدخول..." : "تسجيل الدخول"}
         </button>
       </form>
     </div>

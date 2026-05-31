@@ -1,7 +1,12 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://api.localhost:4000";
+import { getTenantSubdomain } from "@/lib/auth";
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (process.env.NODE_ENV === "development" ? "http://api.localhost:4000" : "");
 
 interface ApiOptions<T> extends RequestInit {
   token?: string;
+  tenantSubdomain?: string;
   parse?: (data: unknown) => T;
 }
 
@@ -34,7 +39,7 @@ export async function apiClient<T>(
   path: string,
   options: ApiOptions<T> = {}
 ): Promise<ApiResponse<T | unknown>> {
-  const { token, headers: customHeaders, parse, ...rest } = options;
+  const { token, tenantSubdomain: requestedTenantSubdomain, headers: customHeaders, parse, ...rest } = options;
 
   const headers = new Headers(customHeaders);
   headers.set("Content-Type", "application/json");
@@ -44,15 +49,24 @@ export async function apiClient<T>(
   }
 
   const tenantSubdomain =
-    typeof window !== "undefined"
+    requestedTenantSubdomain ??
+    (typeof window !== "undefined" && window.location.hostname.endsWith(".localhost")
       ? window.location.hostname.split(".")[0]
-      : "";
+      : getTenantSubdomain() ?? "");
 
   if (tenantSubdomain) {
     headers.set("X-Tenant-Subdomain", tenantSubdomain);
   }
 
   try {
+    if (!API_BASE_URL) {
+      return {
+        data: null,
+        error: "API URL is not configured",
+        status: 0,
+      };
+    }
+
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...rest,
       headers,

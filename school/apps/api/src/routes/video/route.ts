@@ -1,4 +1,5 @@
 import { FastifyPluginAsync } from "fastify";
+import crypto from "node:crypto";
 import { lessonParamsSchema, videoProgressUpdateSchema, assignVideoSchema } from "@school/shared";
 import { env } from "../../env.js";
 
@@ -96,10 +97,13 @@ const videoRoutes: FastifyPluginAsync = async (fastify) => {
     const token = env.CLOUDFLARE_STREAM_TOKEN;
 
     if (!accountId || !token || accountId.includes("placeholder") || token.includes("placeholder")) {
+      if (env.NODE_ENV === "production") {
+        return reply.status(503).send({ error: "Video upload service is not configured" });
+      }
       request.log.info("Using mock Cloudflare response due to missing or placeholder credentials");
       return { 
         uploadURL: "https://mock.cloudflare.stream/upload", 
-        uid: "mock-" + Math.random().toString(36).slice(2) 
+        uid: `mock-${crypto.randomUUID()}`,
       };
     }
 
@@ -177,8 +181,10 @@ const videoRoutes: FastifyPluginAsync = async (fastify) => {
 
     const accountId = env.CLOUDFLARE_ACCOUNT_ID;
     
-    // In Production: Generate signed JWT here using CF keys (pem string).
-    // For now we issue a mock signed payload to satisfy requireSignedURLs architecture.
+    if (env.NODE_ENV === "production") {
+      return reply.status(503).send({ error: "Video playback signing is not configured" });
+    }
+
     const signedToken = `mock-signed-token-for-${uid}-${Date.now()}`;
     
     return { 

@@ -2,8 +2,7 @@ import { FastifyPluginAsync } from "fastify";
 import crypto from "crypto";
 import { tenantContext } from "../../plugins/prisma.js";
 import { Plan } from "@school/shared";
-
-const CHARGILY_SECRET_KEY = process.env.CHARGILY_SECRET_KEY || "test_sk_mock";
+import { env } from "../../env.js";
 
 export const chargilyWebhookRoute: FastifyPluginAsync = async (fastify) => {
   // Capture raw body as buffer for signature verification (Fastify 5 requires "buffer")
@@ -22,6 +21,11 @@ export const chargilyWebhookRoute: FastifyPluginAsync = async (fastify) => {
   );
 
   fastify.post("/", async (request, reply) => {
+    if (!env.CHARGILY_SECRET_KEY) {
+      request.log.error("Chargily webhook secret is not configured");
+      return reply.status(503).send({ error: "Payment gateway is not configured" });
+    }
+
     const signature = request.headers["signature"];
     if (!signature || typeof signature !== "string") {
       return reply.status(400).send({ error: "Missing signature" });
@@ -31,7 +35,7 @@ export const chargilyWebhookRoute: FastifyPluginAsync = async (fastify) => {
     
     // Verify signature
     const computedSignature = crypto
-      .createHmac("sha256", CHARGILY_SECRET_KEY)
+      .createHmac("sha256", env.CHARGILY_SECRET_KEY)
       .update(payload.raw)
       .digest("hex");
 
@@ -60,8 +64,8 @@ export const chargilyWebhookRoute: FastifyPluginAsync = async (fastify) => {
          });
 
          if (existing) {
-            await fastify.prisma.subscription.update({
-               where: { id: existing.id },
+            await fastify.prisma.subscription.updateMany({
+               where: { id: existing.id, tenantId: metadata.tenantId },
                data: {
                   chargilyId: checkout.id as string,
                   plan: metadata.plan as Plan,

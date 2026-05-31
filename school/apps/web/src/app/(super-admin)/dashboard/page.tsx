@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Loader2, ShieldAlert, Users, Calendar, Building2, Store } from "lucide-react";
+import { Loader2, ShieldAlert, Users, Building2, Store } from "lucide-react";
 
 interface Tenant {
   id: string;
@@ -36,7 +36,10 @@ export default function SuperAdminDashboard() {
   }
 
   useEffect(() => {
-    void loadTenants();
+    const timeout = window.setTimeout(() => {
+      void loadTenants();
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, []);
 
   async function toggleStatus(tenantId: string, currentStatus: string) {
