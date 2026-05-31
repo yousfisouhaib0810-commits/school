@@ -95,6 +95,8 @@ Evidence:
 - Landing pages are stored as JSON blocks.
 - Render engine supports hero, pricing, text, and CTA blocks.
 - Public and admin endpoints exist.
+- Text blocks now render as escaped text instead of raw HTML.
+- The dashboard editor now validates block JSON with the shared Zod schema before saving.
 
 Remaining:
 - Current dashboard editor is JSON-level, not a production page builder.
