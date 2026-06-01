@@ -1,5 +1,5 @@
 import { PaymentButton } from "@/components/shared/PaymentButton";
-import { Plan } from "@school/shared";
+import { PaymentProvider, Plan } from "@school/shared";
 import { Check } from "lucide-react";
 
 export default function BillingPage() {
@@ -31,7 +31,10 @@ export default function BillingPage() {
               <li className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-500" /> Live Jitsi Seminars</li>
               <li className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-500" /> PDF Downloads</li>
            </ul>
-           <PaymentButton plan={Plan.PRO} label="Upgrade with Chargily ePay (CIB / EDAHABIA)" />
+           <div className="space-y-2">
+              <PaymentButton plan={Plan.PRO} provider={PaymentProvider.CHARGILY} label="Chargily ePay (CIB / EDAHABIA)" />
+              <PaymentButton plan={Plan.PRO} provider={PaymentProvider.STRIPE} label="Stripe international card" />
+           </div>
         </div>
 
         {/* ENTERPRISE Plan */}
@@ -43,7 +46,10 @@ export default function BillingPage() {
               <li className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-500" /> 1-on-1 Mentoring</li>
               <li className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-500" /> Premium Support</li>
            </ul>
-           <PaymentButton plan={Plan.ENTERPRISE} label="Upgrade with Chargily ePay" />
+           <div className="space-y-2">
+              <PaymentButton plan={Plan.ENTERPRISE} provider={PaymentProvider.CHARGILY} label="Chargily ePay" />
+              <PaymentButton plan={Plan.ENTERPRISE} provider={PaymentProvider.STRIPE} label="Stripe international card" />
+           </div>
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ const TENANT_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "22222222-2222-4222-8222-222222222222";
 const CHARGILY_SECRET = "test-chargily-secret";
 const CHARGILY_API_URL = "https://chargily.test/checkouts";
+const STRIPE_SECRET = "sk_test_school_platform";
 
 const checkoutSuccessResponseSchema = z.object({
   checkoutUrl: z.string().url(),
@@ -25,10 +26,26 @@ const chargilyRequestSchema = z.object({
   }),
 });
 
+const stripeRequestSchema = z.object({
+  mode: z.literal("payment"),
+  success_url: z.string().url(),
+  cancel_url: z.string().url(),
+  "line_items[0][quantity]": z.literal("1"),
+  "line_items[0][price_data][currency]": z.literal("usd"),
+  "line_items[0][price_data][unit_amount]": z.string(),
+  "line_items[0][price_data][product_data][name]": z.string().min(1),
+  "metadata[tenantId]": z.string().uuid(),
+  "metadata[userId]": z.string().uuid(),
+  "metadata[plan]": z.enum(["PRO", "ENTERPRISE"]),
+  "payment_intent_data[metadata][tenantId]": z.string().uuid(),
+  "payment_intent_data[metadata][userId]": z.string().uuid(),
+  "payment_intent_data[metadata][plan]": z.enum(["PRO", "ENTERPRISE"]),
+});
+
 interface CapturedCheckoutRequest {
   url?: string;
   authorization?: string;
-  body?: z.infer<typeof chargilyRequestSchema>;
+  body?: z.infer<typeof chargilyRequestSchema> | z.infer<typeof stripeRequestSchema>;
 }
 
 function unwrapDefaultExport(value: unknown): unknown {
@@ -103,6 +120,34 @@ function installChargilyFetchMock(capturedRequest: CapturedCheckoutRequest): typ
   return originalFetch;
 }
 
+function installStripeFetchMock(capturedRequest: CapturedCheckoutRequest): typeof fetch {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
+    const [url, init] = args;
+    capturedRequest.url = String(url);
+    const headers = new Headers(init?.headers);
+    capturedRequest.authorization = headers.get("authorization") ?? undefined;
+    if (typeof init?.body === "string") {
+      const params = Object.fromEntries(new URLSearchParams(init.body).entries());
+      capturedRequest.body = stripeRequestSchema.parse(params);
+    }
+
+    return new Response(
+      JSON.stringify({
+        url: "https://checkout.stripe.test/session_123",
+        id: "cs_test_123",
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }
+    );
+  };
+
+  return originalFetch;
+}
+
 before(() => {
   process.env.DATABASE_URL = "postgresql://school:test@localhost:5432/school";
   process.env.JWT_SECRET = "test-access-secret-with-more-than-32-characters";
@@ -110,6 +155,7 @@ before(() => {
   process.env.NODE_ENV = "test";
   process.env.CHARGILY_SECRET_KEY = CHARGILY_SECRET;
   process.env.CHARGILY_API_URL = CHARGILY_API_URL;
+  process.env.STRIPE_SECRET_KEY = STRIPE_SECRET;
 });
 
 describe("payment checkout route", () => {
@@ -177,6 +223,52 @@ describe("payment checkout route", () => {
       assert.equal(response.statusCode, 400);
       assert.deepEqual(response.json(), { error: "Cannot checkout free plan" });
       assert.equal(fetchWasCalled, false);
+    } finally {
+      globalThis.fetch = originalFetch;
+      await app.close();
+    }
+  });
+
+  it("creates a Stripe checkout with tenant-scoped metadata", async () => {
+    const capturedRequest: CapturedCheckoutRequest = {};
+    const originalFetch = installStripeFetchMock(capturedRequest);
+    const app = await buildApp();
+
+    try {
+      const response = await app.inject({
+        method: "POST",
+        url: "/checkout",
+        payload: {
+          provider: "STRIPE",
+          plan: "ENTERPRISE",
+          successUrl: "https://school.example/success",
+          cancelUrl: "https://school.example/cancel",
+        },
+      });
+      const body = checkoutSuccessResponseSchema.parse(response.json());
+
+      assert.equal(response.statusCode, 200);
+      assert.deepEqual(body, {
+        checkoutUrl: "https://checkout.stripe.test/session_123",
+        id: "cs_test_123",
+      });
+      assert.equal(capturedRequest.url, "https://api.stripe.com/v1/checkout/sessions");
+      assert.equal(capturedRequest.authorization, `Bearer ${STRIPE_SECRET}`);
+      assert.deepEqual(capturedRequest.body, {
+        mode: "payment",
+        success_url: "https://school.example/success",
+        cancel_url: "https://school.example/cancel",
+        "line_items[0][quantity]": "1",
+        "line_items[0][price_data][currency]": "usd",
+        "line_items[0][price_data][unit_amount]": "14900",
+        "line_items[0][price_data][product_data][name]": "School Platform Enterprise Plan",
+        "metadata[tenantId]": TENANT_ID,
+        "metadata[userId]": USER_ID,
+        "metadata[plan]": "ENTERPRISE",
+        "payment_intent_data[metadata][tenantId]": TENANT_ID,
+        "payment_intent_data[metadata][userId]": USER_ID,
+        "payment_intent_data[metadata][plan]": "ENTERPRISE",
+      });
     } finally {
       globalThis.fetch = originalFetch;
       await app.close();

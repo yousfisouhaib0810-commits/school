@@ -186,6 +186,7 @@ model Subscription {
   tenantId         String    @db.Uuid
   userId           String    @db.Uuid
   chargilyId       String?
+  stripeCheckoutSessionId String?
   status           SubStatus @default(ACTIVE)
   plan             Plan      @default(FREE)
   currentPeriodEnd DateTime?
@@ -198,6 +199,7 @@ model Subscription {
 
   @@index([tenantId, deletedAt])
   @@index([tenantId, chargilyId])
+  @@index([tenantId, stripeCheckoutSessionId])
 }
 
 model PaymentEvent {

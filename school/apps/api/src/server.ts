@@ -21,6 +21,7 @@ import lessonRoutes from "./routes/lessons/route.js";
 import liveRoutes from "./routes/live/route.js";
 import paymentsRoutes from "./routes/payments/route.js";
 import chargilyWebhookRoute from "./routes/webhooks/chargily.js";
+import stripeWebhookRoute from "./routes/webhooks/stripe.js";
 import landingRoutes from "./routes/landing/route.js";
 import superAdminRoutes from "./routes/super-admin/route.js";
 import { getEmailDomain, isConfiguredValue, isUsableEmailSender } from "./services/email-config.js";
@@ -174,6 +175,7 @@ async function bootstrap() {
   fastify.register(liveRoutes, { prefix: "/api/live" });
   fastify.register(paymentsRoutes, { prefix: "/api/payments" });
   fastify.register(chargilyWebhookRoute, { prefix: "/api/webhooks/chargily" });
+  fastify.register(stripeWebhookRoute, { prefix: "/api/webhooks/stripe" });
   fastify.register(landingRoutes, { prefix: "/api/landing" });
   fastify.register(superAdminRoutes, { prefix: "/api/super-admin" });
 
@@ -205,6 +207,8 @@ async function bootstrap() {
           ? "ok"
           : "missing",
       chargily: isConfiguredValue(env.CHARGILY_SECRET_KEY) ? "ok" : "missing",
+      stripe:
+        isConfiguredValue(env.STRIPE_SECRET_KEY) && isConfiguredValue(env.STRIPE_WEBHOOK_SECRET) ? "ok" : "missing",
       jitsi:
         isConfiguredValue(env.JITSI_DOMAIN) &&
         isConfiguredValue(env.JITSI_APP_ID) &&

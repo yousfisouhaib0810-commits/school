@@ -3,7 +3,7 @@ import fp from "fastify-plugin";
 import { areSameCsrfToken } from "../lib/csrf.js";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
-const EXCLUDED_PATH_PREFIXES = ["/api/health", "/api/auth/csrf", "/api/webhooks/chargily"];
+const EXCLUDED_PATH_PREFIXES = ["/api/health", "/api/auth/csrf", "/api/webhooks/chargily", "/api/webhooks/stripe"];
 
 const csrfPlugin: FastifyPluginAsync = async (fastify) => {
   fastify.addHook("preHandler", async (request, reply) => {

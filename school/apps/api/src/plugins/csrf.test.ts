@@ -20,6 +20,7 @@ async function buildApp() {
 
   app.post("/api/protected", async () => ({ ok: true }));
   app.post("/api/webhooks/chargily/test", async () => ({ ok: true }));
+  app.post("/api/webhooks/stripe/test", async () => ({ ok: true }));
 
   return app;
 }
@@ -70,6 +71,22 @@ describe("csrf plugin", () => {
       const response = await app.inject({
         method: "POST",
         url: "/api/webhooks/chargily/test",
+      });
+
+      assert.equal(response.statusCode, 200);
+      assert.deepEqual(response.json(), { ok: true });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("does not require CSRF tokens for Stripe webhook endpoints", async () => {
+    const app = await buildApp();
+
+    try {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/webhooks/stripe/test",
       });
 
       assert.equal(response.statusCode, 200);

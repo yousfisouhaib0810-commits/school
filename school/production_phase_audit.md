@@ -91,7 +91,7 @@ Remaining:
 
 ## Phase 5 - Payments
 
-Status: partially implemented.
+Status: implemented for Chargily and Stripe, pending live provider configuration.
 
 Evidence:
 - Chérgily checkout and signed webhook exist.
@@ -101,14 +101,21 @@ Evidence:
 - Successful Chérgily checkout webhooks update both the subscription and the tenant plan in one transaction.
 - Automated API tests now verify invalid webhook signatures are rejected without writes and duplicate Chérgily events are processed once.
 
-Additional Phase 5 evidence after checkout-route hardening:
+Additional Phase 5 evidence after Stripe provider implementation:
+- Stripe checkout now exists as a separate international-card provider without replacing Chargily.
+- Stripe webhook processing verifies the `stripe-signature` HMAC with timestamp tolerance before any write.
+- Successful Stripe `checkout.session.completed` webhooks update both subscription and tenant plan in one transaction.
+- Stripe webhook processing is idempotent through tenant-scoped `PaymentEvent` records.
+- The billing UI now exposes Chargily ePay for CIB/EDAHABIA and Stripe for international cards.
+- `/api/readiness` now reports Stripe configuration readiness without exposing secrets.
 - Chargily checkout responses are now validated before use.
 - Automated API tests now verify checkout creation sends tenant/user/plan metadata to Chargily and free plans do not call the gateway.
+- Automated API tests now verify Stripe checkout metadata, CSRF webhook exemption, invalid Stripe signatures, and duplicate Stripe events.
 
 Remaining:
-- Stripe is not implemented.
-- CIB/Edahabia integration is not implemented.
-- Add gateway-specific tests for Stripe and CIB/Edahabia once those providers are implemented.
+- Configure `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in Render and Stripe Dashboard.
+- Configure Chargily production credentials for CIB/Edahabia processing.
+- Run live provider smoke tests with real sandbox/production accounts after credentials are configured.
 
 ## Phase 6 - Landing Page Builder
 
@@ -165,7 +172,7 @@ Status: partially implemented.
 
 Evidence:
 - Helmet, explicit CORS, global rate limiting, Redis cache for lesson/video list, health checks, graceful shutdown, and startup retries for PostgreSQL/Redis exist.
-- `/api/readiness` reports production dependency readiness for database, Redis, Resend, Cloudflare, Chérgily, and Jitsi without exposing secrets.
+- `/api/readiness` reports production dependency readiness for database, Redis, Resend, Cloudflare, Chérgily, Stripe, and Jitsi without exposing secrets.
 - `/api/readiness` distinguishes invalid Resend API credentials, insufficient Resend domain-check permissions, and placeholder email sender domains.
 - Database backup automation now exists through `pnpm db:backup`; it writes custom-format `pg_dump` files to `BACKUP_DIR`/`backups` without placing `DATABASE_URL` on the child process command line.
 - `pnpm type-check`, `pnpm lint`, `pnpm test`, and `pnpm build` pass locally after the latest changes.
@@ -175,7 +182,7 @@ Evidence:
 - Teacher dashboard API tests cover CRUD, soft-delete, reorder, tenant ownership checks, and lesson cache invalidation.
 - Cloudflare playback signing tests verify configured signed iframe URLs include user and tenant binding.
 - Jitsi live-session tests verify tenant-scoped room creation and signed room-bound access tokens.
-- Payment tests cover Chargily checkout metadata, free-plan rejection, webhook signatures, and webhook idempotency.
+- Payment tests cover Chargily and Stripe checkout metadata, free-plan rejection, webhook signatures, and webhook idempotency.
 - Landing builder tests cover tenant-scoped API writes and invalid block rejection; the dashboard builder now uses controls plus preview instead of JSON editing.
 - Student portal pages now expose explicit loading, empty, and retryable error states for course, lesson, and live-session flows.
 - Tenant middleware tests now verify `/api/readiness` is public while tenant-scoped routes still reject missing tenant headers.

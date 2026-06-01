@@ -259,7 +259,13 @@ export enum Plan {
   ENTERPRISE = "ENTERPRISE",
 }
 
+export enum PaymentProvider {
+  CHARGILY = "CHARGILY",
+  STRIPE = "STRIPE",
+}
+
 export const checkoutSessionSchema = z.object({
+  provider: z.nativeEnum(PaymentProvider).default(PaymentProvider.CHARGILY),
   plan: z.nativeEnum(Plan),
   successUrl: z.string().url(),
   cancelUrl: z.string().url(),

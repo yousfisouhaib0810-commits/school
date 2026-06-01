@@ -15,6 +15,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/api/auth/refresh",
   "/api/auth/session",
   "/api/webhooks/chargily",
+  "/api/webhooks/stripe",
   "/api/super-admin"
 ];
 

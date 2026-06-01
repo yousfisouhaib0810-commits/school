@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plan } from "@school/shared";
+import { PaymentProvider, Plan } from "@school/shared";
 import { apiClient } from "@/lib/api";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -11,13 +11,14 @@ import { z } from "zod";
 interface PaymentButtonProps {
   plan: Plan;
   label: string;
+  provider?: PaymentProvider;
 }
 
 const checkoutResponseSchema = z.object({
   checkoutUrl: z.string().url(),
 });
 
-export function PaymentButton({ plan, label }: PaymentButtonProps) {
+export function PaymentButton({ plan, label, provider = PaymentProvider.CHARGILY }: PaymentButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handlePayment = async () => {
@@ -26,6 +27,7 @@ export function PaymentButton({ plan, label }: PaymentButtonProps) {
       const response = await apiClient<{ checkoutUrl: string }>("/api/payments/checkout", {
         method: "POST",
         body: JSON.stringify({
+          provider,
           plan,
           successUrl: `${window.location.origin}/billing?success=true`,
           cancelUrl: `${window.location.origin}/billing?canceled=true`,
@@ -49,7 +51,7 @@ export function PaymentButton({ plan, label }: PaymentButtonProps) {
   };
 
   return (
-    <Button onClick={handlePayment} disabled={isLoading} className="w-full">
+    <Button onClick={handlePayment} disabled={isLoading || plan === Plan.FREE} className="w-full">
       {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
       {label}
     </Button>
