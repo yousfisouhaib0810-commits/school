@@ -1,0 +1,56 @@
+services:
+  - type: web
+    name: school-api
+    runtime: node
+    rootDir: school
+    plan: free
+    region: frankfurt
+    buildCommand: corepack enable && pnpm render:build
+    startCommand: pnpm render:start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: https://school-mu-one.vercel.app
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: CLOUDFLARE_ACCOUNT_ID
+        sync: false
+      - key: CLOUDFLARE_STREAM_TOKEN
+        sync: false
+      - key: CLOUDFLARE_STREAM_CUSTOMER_CODE
+        sync: false
+      - key: CLOUDFLARE_STREAM_SIGNING_KEY_ID
+        sync: false
+      - key: CLOUDFLARE_STREAM_SIGNING_PRIVATE_KEY
+        sync: false
+      - key: CHARGILY_SECRET_KEY
+        sync: false
+      - key: CHARGILY_API_URL
+        value: https://pay.chargily.net/api/v2/checkouts
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: METRICS_TOKEN
+        generateValue: true
+      - key: JITSI_DOMAIN
+        sync: false
+      - key: JITSI_APP_ID
+        sync: false
+      - key: JITSI_APP_SECRET
+        sync: false
