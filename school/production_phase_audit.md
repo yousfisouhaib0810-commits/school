@@ -53,9 +53,10 @@ Evidence:
 - The demo seed creates a verified teacher account and baseline subject/stage/lesson content for workflow testing.
 - Automated API tests now verify subject, stage, and lesson reorder requests stay scoped to the authenticated tenant.
 - Automated API tests now verify subject, stage, and lesson create, update, parent ownership checks, soft-delete cascades, lesson cache invalidation, and mutation audit events.
+- Playwright browser tests now verify the teacher subject dashboard renders workflow data through the real Next.js UI with mocked API responses.
 
 Remaining:
-- Add browser-level teacher dashboard workflow tests after production test users are available.
+- Run live production teacher workflow smoke tests after Render/Vercel credentials and seeded demo users are configured.
 
 ## Phase 3 - Protected Video
 
@@ -135,9 +136,10 @@ Evidence:
 - Landing page create/update operations now write tenant-scoped audit logs.
 - The platform landing page and auth pages now render Arabic/RTL copy correctly in production.
 - The demo seed publishes a baseline landing page so the public renderer and dashboard editor have stable test content.
+- Playwright browser tests now verify the landing builder loads, previews, edits, and saves block content through the real Next.js UI with mocked API responses.
 
 Remaining:
-- Add browser-level landing builder workflow tests after production test users are available.
+- Run live production landing-builder smoke tests after Render/Vercel credentials and seeded demo users are configured.
 
 ## Phase 7 - Student Portal
 
@@ -149,9 +151,10 @@ Evidence:
 - Student video playback tokens and progress updates now require a paid active tenant plan.
 - Student course, lesson, live-session, and profile screens now use clearer loading, empty, retryable error, and account-context states.
 - The demo seed creates a verified paid student account and baseline lesson/live-session records for student journey testing.
+- Playwright browser tests now verify the student course list renders lesson journey data and links to the lesson route through the real Next.js UI with mocked API responses.
 
 Remaining:
-- Add browser-level student journey tests after production test users are available.
+- Run live production student journey smoke tests after Render/Vercel credentials and seeded demo users are configured.
 
 ## Phase 8 - Super Admin
 
@@ -167,9 +170,10 @@ Evidence:
 - The login flow now routes `SUPER_ADMIN` users directly to the operational `/dashboard` super-admin console.
 - Tenant settings updates now write tenant-scoped audit logs.
 - Automated API tests now cover stale actor rejection, non-super-admin rejection, audited global tenant reads, audited audit-log reads, and audited tenant status updates.
+- Playwright browser tests now verify the super-admin console renders tenant and audit-log data through the real Next.js UI with a signed test JWT and mocked API responses.
 
 Remaining:
-- Add browser-level super-admin login and console workflow tests after a production super-admin test account is available.
+- Run live production super-admin login and console smoke tests after a production super-admin test account is configured.
 - Define any additional product-specific audit event coverage required for non-content tenant-admin operations.
 
 ## Phase 9 - Protection, Performance, Quality
@@ -194,6 +198,7 @@ Evidence:
 - Student portal pages now expose explicit loading, empty, and retryable error states for course, lesson, and live-session flows.
 - Tenant middleware tests now verify `/api/readiness` is public while tenant-scoped routes still reject missing tenant headers.
 - Metrics tests verify unauthorised probes are rejected and authorised probes return text metrics without requiring a tenant header.
+- Playwright browser tests cover teacher dashboard, landing builder, student course list, and super-admin console UI smoke workflows.
 - Super-admin tests now verify hardened actor revalidation and audit logging for sensitive global operations.
 - Tenant-admin mutation tests now verify audit logging for subject, stage, lesson, landing-page, and tenant-settings changes.
 

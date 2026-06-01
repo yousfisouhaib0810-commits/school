@@ -8,5 +8,7 @@ tsconfig.tsbuildinfo
 *.log
 pgdata
 backups
+test-results
+playwright-report
 
 .vercel

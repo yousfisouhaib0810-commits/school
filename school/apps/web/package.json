@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:e2e": "next dev --turbopack --hostname 127.0.0.1 --port 3100",
     "build": "cd ../.. && pnpm --filter @school/shared run build && cd apps/web && next build",
     "start": "next start",
+    "test:e2e": "playwright test",
     "type-check": "tsc --noEmit",
     "lint": "eslint"
   },
@@ -31,6 +33,7 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
