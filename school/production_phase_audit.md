@@ -174,7 +174,7 @@ Status: partially implemented.
 
 Evidence:
 - Helmet, explicit CORS, global rate limiting, Redis cache for lesson/video list, health checks, graceful shutdown, and startup retries for PostgreSQL/Redis exist.
-- `/api/readiness` reports production dependency readiness for database, Redis, Resend, Cloudflare, Chérgily, Stripe, and Jitsi without exposing secrets.
+- `/api/readiness` reports production dependency readiness for database, Redis, Resend, Cloudflare, Chérgily, Stripe, metrics, and Jitsi without exposing secrets.
 - `/api/readiness` distinguishes invalid Resend API credentials, insufficient Resend domain-check permissions, and placeholder email sender domains.
 - A Prometheus-style `/api/metrics` endpoint now exposes request, response, uptime, and memory metrics only when called with the configured bearer `METRICS_TOKEN`.
 - Database backup automation now exists through `pnpm db:backup`; it writes custom-format `pg_dump` files to `BACKUP_DIR`/`backups` without placing `DATABASE_URL` on the child process command line.

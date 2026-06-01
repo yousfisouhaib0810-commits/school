@@ -211,6 +211,7 @@ async function bootstrap() {
       chargily: isConfiguredValue(env.CHARGILY_SECRET_KEY) ? "ok" : "missing",
       stripe:
         isConfiguredValue(env.STRIPE_SECRET_KEY) && isConfiguredValue(env.STRIPE_WEBHOOK_SECRET) ? "ok" : "missing",
+      metrics: isConfiguredValue(env.METRICS_TOKEN) ? "ok" : "missing",
       jitsi:
         isConfiguredValue(env.JITSI_DOMAIN) &&
         isConfiguredValue(env.JITSI_APP_ID) &&
