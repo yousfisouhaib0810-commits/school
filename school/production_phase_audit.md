@@ -201,6 +201,7 @@ Evidence:
 - Tenant middleware tests now verify `/api/readiness` is public while tenant-scoped routes still reject missing tenant headers.
 - Metrics tests verify unauthorised probes are rejected and authorised probes return text metrics without requiring a tenant header.
 - Playwright browser tests cover teacher dashboard, landing builder, student course list, and super-admin console UI smoke workflows.
+- `pnpm production:smoke` now checks the deployed Vercel web pages and Render API health/readiness URLs so production regressions are visible from one command.
 - Super-admin tests now verify hardened actor revalidation and audit logging for sensitive global operations.
 - Tenant-admin mutation tests now verify audit logging for subject, stage, lesson, landing-page, and tenant-settings changes.
 - Render deployment configuration now pins the API start command, production health check path, and required secret-backed environment variables without committing secrets.

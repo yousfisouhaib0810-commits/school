@@ -12,6 +12,7 @@
     "type-check": "turbo type-check",
     "test": "turbo test",
     "test:e2e": "pnpm --filter @school/web test:e2e",
+    "production:smoke": "node scripts/production-smoke.mjs",
     "lint": "turbo lint",
     "render:build": "pnpm install --frozen-lockfile && pnpm build",
     "render:start": "pnpm --filter @school/api start",
