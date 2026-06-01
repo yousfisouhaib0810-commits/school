@@ -13,7 +13,7 @@ Evidence:
 - Versioned Prisma migrations now exist, and `db:deploy` uses `prisma migrate deploy` plus RLS application instead of `prisma db push`.
 - The database deploy script safely baselines an existing `db push` database only when Prisma detects no schema drift.
 - `pnpm db:seed` is now idempotent for the demo tenant and creates verified admin, teacher, and paid student demo users plus one subject, stage, lesson, published landing page, and scheduled live session.
-- Render deployment commands are now captured in the repository-root `render.yaml` and root `render:*` scripts so the existing `school` web service runs idempotent database migrations during startup, starts `@school/api`, and checks `/api/health` on Render's Free plan.
+- Render deployment commands are now captured in the repository-root `render.yaml`, repository-root fallback scripts, and `school` root scripts so the existing `school` web service can start the API whether Render is configured from the repository root or the `school` root directory.
 
 Remaining:
 - Reconnect or update the existing Render service to use the committed build/start commands if the dashboard service was created manually before `render.yaml`.

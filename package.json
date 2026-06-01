@@ -1,0 +1,10 @@
+{
+  "name": "school-repository",
+  "private": true,
+  "scripts": {
+    "build": "pnpm --dir school render:build",
+    "start": "pnpm --dir school render:start",
+    "production:smoke": "pnpm --dir school production:smoke"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

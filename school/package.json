@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "turbo run dev",
+    "start": "pnpm render:start",
     "db:push": "turbo run db:push",
     "db:deploy": "pnpm --filter @school/database db:deploy",
     "db:backup": "pnpm --filter @school/database db:backup",
