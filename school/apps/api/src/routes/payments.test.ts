@@ -27,19 +27,20 @@ const chargilyRequestSchema = z.object({
 });
 
 const stripeRequestSchema = z.object({
-  mode: z.literal("payment"),
+  mode: z.literal("subscription"),
   success_url: z.string().url(),
   cancel_url: z.string().url(),
   "line_items[0][quantity]": z.literal("1"),
   "line_items[0][price_data][currency]": z.literal("usd"),
   "line_items[0][price_data][unit_amount]": z.string(),
+  "line_items[0][price_data][recurring][interval]": z.literal("month"),
   "line_items[0][price_data][product_data][name]": z.string().min(1),
   "metadata[tenantId]": z.string().uuid(),
   "metadata[userId]": z.string().uuid(),
   "metadata[plan]": z.enum(["PRO", "ENTERPRISE"]),
-  "payment_intent_data[metadata][tenantId]": z.string().uuid(),
-  "payment_intent_data[metadata][userId]": z.string().uuid(),
-  "payment_intent_data[metadata][plan]": z.enum(["PRO", "ENTERPRISE"]),
+  "subscription_data[metadata][tenantId]": z.string().uuid(),
+  "subscription_data[metadata][userId]": z.string().uuid(),
+  "subscription_data[metadata][plan]": z.enum(["PRO", "ENTERPRISE"]),
 });
 
 interface CapturedCheckoutRequest {
@@ -255,19 +256,20 @@ describe("payment checkout route", () => {
       assert.equal(capturedRequest.url, "https://api.stripe.com/v1/checkout/sessions");
       assert.equal(capturedRequest.authorization, `Bearer ${STRIPE_SECRET}`);
       assert.deepEqual(capturedRequest.body, {
-        mode: "payment",
+        mode: "subscription",
         success_url: "https://school.example/success",
         cancel_url: "https://school.example/cancel",
         "line_items[0][quantity]": "1",
         "line_items[0][price_data][currency]": "usd",
         "line_items[0][price_data][unit_amount]": "14900",
+        "line_items[0][price_data][recurring][interval]": "month",
         "line_items[0][price_data][product_data][name]": "School Platform Enterprise Plan",
         "metadata[tenantId]": TENANT_ID,
         "metadata[userId]": USER_ID,
         "metadata[plan]": "ENTERPRISE",
-        "payment_intent_data[metadata][tenantId]": TENANT_ID,
-        "payment_intent_data[metadata][userId]": USER_ID,
-        "payment_intent_data[metadata][plan]": "ENTERPRISE",
+        "subscription_data[metadata][tenantId]": TENANT_ID,
+        "subscription_data[metadata][userId]": USER_ID,
+        "subscription_data[metadata][plan]": "ENTERPRISE",
       });
     } finally {
       globalThis.fetch = originalFetch;

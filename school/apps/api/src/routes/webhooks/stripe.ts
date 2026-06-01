@@ -19,6 +19,8 @@ const checkoutSessionCompletedSchema = z.object({
   data: z.object({
     object: z.object({
       id: z.string().min(1),
+      customer: z.string().min(1),
+      subscription: z.string().min(1),
       metadata: z.object({
         tenantId: z.string().uuid(),
         userId: z.string().uuid(),
@@ -135,11 +137,17 @@ export const stripeWebhookRoute: FastifyPluginAsync = async (fastify) => {
             select: { id: true },
           });
 
+          await tx.user.updateMany({
+            where: { id: metadata.userId, tenantId: metadata.tenantId, deletedAt: null },
+            data: { stripeCustomerId: session.customer },
+          });
+
           if (existing) {
             await tx.subscription.updateMany({
               where: { id: existing.id, tenantId: metadata.tenantId },
               data: {
                 stripeCheckoutSessionId: session.id,
+                stripeSubscriptionId: session.subscription,
                 plan: metadata.plan,
                 status: "ACTIVE",
               },
@@ -150,6 +158,7 @@ export const stripeWebhookRoute: FastifyPluginAsync = async (fastify) => {
                 tenantId: metadata.tenantId,
                 userId: metadata.userId,
                 stripeCheckoutSessionId: session.id,
+                stripeSubscriptionId: session.subscription,
                 plan: metadata.plan,
                 status: "ACTIVE",
               },

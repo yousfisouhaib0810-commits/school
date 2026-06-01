@@ -11,6 +11,8 @@ const TENANT_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "22222222-2222-4222-8222-222222222222";
 const EVENT_ID = "evt_test_123";
 const SESSION_ID = "cs_test_123";
+const CUSTOMER_ID = "cus_test_123";
+const SUBSCRIPTION_ID = "sub_test_123";
 
 interface PaymentEventCreateInput {
   data: {
@@ -37,8 +39,20 @@ interface SubscriptionUpdateManyInput {
   };
   data: {
     stripeCheckoutSessionId: string;
+    stripeSubscriptionId: string;
     plan: Plan;
     status: "ACTIVE";
+  };
+}
+
+interface UserUpdateManyInput {
+  where: {
+    id: string;
+    tenantId: string;
+    deletedAt: null;
+  };
+  data: {
+    stripeCustomerId: string;
   };
 }
 
@@ -61,6 +75,9 @@ interface TransactionClientStub {
     updateMany(input: SubscriptionUpdateManyInput): Promise<{ count: number }>;
     create(input: { data: SubscriptionUpdateManyInput["data"] & { tenantId: string; userId: string } }): Promise<void>;
   };
+  user: {
+    updateMany(input: UserUpdateManyInput): Promise<{ count: number }>;
+  };
   tenant: {
     updateMany(input: TenantUpdateManyInput): Promise<{ count: number }>;
   };
@@ -76,6 +93,8 @@ interface PaymentState {
   subscriptionPlan: Plan;
   tenantPlan: Plan;
   stripeCheckoutSessionId?: string;
+  stripeSubscriptionId?: string;
+  stripeCustomerId?: string;
 }
 
 function duplicateEventError(): Prisma.PrismaClientKnownRequestError {
@@ -109,6 +128,7 @@ function createPrismaStub(state: PaymentState): PrismaStub {
         if (input.where.tenantId === TENANT_ID) {
           state.subscriptionPlan = input.data.plan;
           state.stripeCheckoutSessionId = input.data.stripeCheckoutSessionId;
+          state.stripeSubscriptionId = input.data.stripeSubscriptionId;
           return { count: 1 };
         }
         return { count: 0 };
@@ -116,6 +136,16 @@ function createPrismaStub(state: PaymentState): PrismaStub {
       async create(input) {
         state.subscriptionPlan = input.data.plan;
         state.stripeCheckoutSessionId = input.data.stripeCheckoutSessionId;
+        state.stripeSubscriptionId = input.data.stripeSubscriptionId;
+      },
+    },
+    user: {
+      async updateMany(input) {
+        if (input.where.id === USER_ID && input.where.tenantId === TENANT_ID) {
+          state.stripeCustomerId = input.data.stripeCustomerId;
+          return { count: 1 };
+        }
+        return { count: 0 };
       },
     },
     tenant: {
@@ -143,6 +173,8 @@ function signedPayload(plan: Plan): { raw: string; signature: string } {
     data: {
       object: {
         id: SESSION_ID,
+        customer: CUSTOMER_ID,
+        subscription: SUBSCRIPTION_ID,
         metadata: {
           tenantId: TENANT_ID,
           userId: USER_ID,
@@ -251,6 +283,8 @@ describe("Stripe webhook", () => {
     assert.equal(state.subscriptionPlan, Plan.ENTERPRISE);
     assert.equal(state.tenantPlan, Plan.ENTERPRISE);
     assert.equal(state.stripeCheckoutSessionId, SESSION_ID);
+    assert.equal(state.stripeSubscriptionId, SUBSCRIPTION_ID);
+    assert.equal(state.stripeCustomerId, CUSTOMER_ID);
 
     await app.close();
   });

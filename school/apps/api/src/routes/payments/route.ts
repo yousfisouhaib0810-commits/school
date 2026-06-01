@@ -37,19 +37,20 @@ function buildStripeCheckoutBody(input: {
   userId: string;
 }): URLSearchParams {
   const body = new URLSearchParams({
-    mode: "payment",
+    mode: "subscription",
     success_url: input.successUrl,
     cancel_url: input.cancelUrl,
     "line_items[0][quantity]": "1",
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][unit_amount]": String(PLAN_AMOUNTS_USD_CENTS[input.plan]),
+    "line_items[0][price_data][recurring][interval]": "month",
     "line_items[0][price_data][product_data][name]": `School Platform ${input.plan === "PRO" ? "Pro" : "Enterprise"} Plan`,
     "metadata[tenantId]": input.tenantId,
     "metadata[userId]": input.userId,
     "metadata[plan]": input.plan,
-    "payment_intent_data[metadata][tenantId]": input.tenantId,
-    "payment_intent_data[metadata][userId]": input.userId,
-    "payment_intent_data[metadata][plan]": input.plan,
+    "subscription_data[metadata][tenantId]": input.tenantId,
+    "subscription_data[metadata][userId]": input.userId,
+    "subscription_data[metadata][plan]": input.plan,
   });
 
   return body;

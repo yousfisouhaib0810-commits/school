@@ -103,14 +103,16 @@ Evidence:
 
 Additional Phase 5 evidence after Stripe provider implementation:
 - Stripe checkout now exists as a separate international-card provider without replacing Chargily.
+- Stripe checkout now uses subscription mode and creates monthly recurring subscriptions.
 - Stripe webhook processing verifies the `stripe-signature` HMAC with timestamp tolerance before any write.
 - Successful Stripe `checkout.session.completed` webhooks update both subscription and tenant plan in one transaction.
+- Successful Stripe checkout webhooks persist the Stripe customer id on the tenant-scoped user and the Stripe subscription id on the tenant-scoped subscription.
 - Stripe webhook processing is idempotent through tenant-scoped `PaymentEvent` records.
 - The billing UI now exposes Chargily ePay for CIB/EDAHABIA and Stripe for international cards.
 - `/api/readiness` now reports Stripe configuration readiness without exposing secrets.
 - Chargily checkout responses are now validated before use.
 - Automated API tests now verify checkout creation sends tenant/user/plan metadata to Chargily and free plans do not call the gateway.
-- Automated API tests now verify Stripe checkout metadata, CSRF webhook exemption, invalid Stripe signatures, and duplicate Stripe events.
+- Automated API tests now verify Stripe subscription checkout metadata, customer/subscription id persistence, CSRF webhook exemption, invalid Stripe signatures, and duplicate Stripe events.
 
 Remaining:
 - Configure `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in Render and Stripe Dashboard.

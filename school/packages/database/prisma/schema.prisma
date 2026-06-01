@@ -56,6 +56,7 @@ model User {
   name           String?
   role           Role     @default(STUDENT)
   chargilyId     String?
+  stripeCustomerId String?
   emailVerifiedAt DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -69,6 +70,7 @@ model User {
 
   @@unique([email, tenantId], name: "email_tenantId")
   @@index([tenantId])
+  @@index([tenantId, stripeCustomerId])
   @@index([tenantId, emailVerifiedAt])
 }
 
@@ -187,6 +189,7 @@ model Subscription {
   userId           String    @db.Uuid
   chargilyId       String?
   stripeCheckoutSessionId String?
+  stripeSubscriptionId String?
   status           SubStatus @default(ACTIVE)
   plan             Plan      @default(FREE)
   currentPeriodEnd DateTime?
@@ -200,6 +203,7 @@ model Subscription {
   @@index([tenantId, deletedAt])
   @@index([tenantId, chargilyId])
   @@index([tenantId, stripeCheckoutSessionId])
+  @@index([tenantId, stripeSubscriptionId])
 }
 
 model PaymentEvent {
