@@ -12,6 +12,7 @@ Evidence:
 - Prisma schema exists and now includes timestamps and soft-delete fields for tenant business models.
 - Versioned Prisma migrations now exist, and `db:deploy` uses `prisma migrate deploy` plus RLS application instead of `prisma db push`.
 - The database deploy script safely baselines an existing `db push` database only when Prisma detects no schema drift.
+- `pnpm db:seed` is now idempotent for the demo tenant and creates verified admin, teacher, and paid student demo users plus one subject, stage, lesson, published landing page, and scheduled live session.
 
 Remaining:
 - Verify the first Render deployment after the migration switch and investigate manually if the safe baseline refuses drift.
@@ -49,6 +50,7 @@ Evidence:
 - Soft delete is now used for subject/stage/lesson deletion.
 - Subject, stage, and lesson create/update/delete/reorder operations now write tenant-scoped audit logs.
 - Subject, stage, and lesson management now use inline forms and in-app delete confirmation instead of browser `prompt`/`confirm`.
+- The demo seed creates a verified teacher account and baseline subject/stage/lesson content for workflow testing.
 - Automated API tests now verify subject, stage, and lesson reorder requests stay scoped to the authenticated tenant.
 - Automated API tests now verify subject, stage, and lesson create, update, parent ownership checks, soft-delete cascades, lesson cache invalidation, and mutation audit events.
 
@@ -132,6 +134,7 @@ Evidence:
 - Landing page updates now use tenant-scoped write filters, and automated API tests verify public published reads, tenant-scoped draft updates, and invalid block rejection before writes.
 - Landing page create/update operations now write tenant-scoped audit logs.
 - The platform landing page and auth pages now render Arabic/RTL copy correctly in production.
+- The demo seed publishes a baseline landing page so the public renderer and dashboard editor have stable test content.
 
 Remaining:
 - Add browser-level landing builder workflow tests after production test users are available.
@@ -145,6 +148,7 @@ Evidence:
 - Progress endpoints exist and cache invalidation is used for lesson changes.
 - Student video playback tokens and progress updates now require a paid active tenant plan.
 - Student course, lesson, live-session, and profile screens now use clearer loading, empty, retryable error, and account-context states.
+- The demo seed creates a verified paid student account and baseline lesson/live-session records for student journey testing.
 
 Remaining:
 - Add browser-level student journey tests after production test users are available.
