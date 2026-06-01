@@ -6,7 +6,6 @@ services:
     plan: free
     region: frankfurt
     buildCommand: corepack enable && pnpm render:build
-    preDeployCommand: pnpm render:predeploy
     startCommand: pnpm render:start
     healthCheckPath: /api/health
     autoDeploy: true
