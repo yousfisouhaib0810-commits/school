@@ -19,6 +19,7 @@ const envSchema = z.object({
   CHARGILY_API_URL: z.string().url().default("https://pay.chargily.net/api/v2/checkouts"),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
+  METRICS_TOKEN: z.string().min(32).optional(),
   JITSI_DOMAIN: z.string().optional(),
   JITSI_APP_ID: z.string().optional(),
   JITSI_APP_SECRET: z.string().optional(),

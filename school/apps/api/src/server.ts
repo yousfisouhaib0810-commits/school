@@ -12,6 +12,7 @@ import tenantPlugin from "./plugins/tenant.js";
 import authPlugin from "./plugins/auth.js";
 import errorHandlerPlugin from "./plugins/error-handler.js";
 import csrfPlugin from "./plugins/csrf.js";
+import metricsPlugin from "./plugins/metrics.js";
 import authRoutes from "./routes/auth/route.js";
 import tenantRoutes from "./routes/tenant/route.js";
 import videoRoutes from "./routes/video/route.js";
@@ -159,6 +160,7 @@ async function bootstrap() {
 
   await fastify.register(cookie);
   await fastify.register(csrfPlugin);
+  await fastify.register(metricsPlugin);
 
   await fastify.register(prismaPlugin);
   await fastify.register(redisPlugin);

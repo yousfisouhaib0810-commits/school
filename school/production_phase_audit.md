@@ -176,6 +176,7 @@ Evidence:
 - Helmet, explicit CORS, global rate limiting, Redis cache for lesson/video list, health checks, graceful shutdown, and startup retries for PostgreSQL/Redis exist.
 - `/api/readiness` reports production dependency readiness for database, Redis, Resend, Cloudflare, Chérgily, Stripe, and Jitsi without exposing secrets.
 - `/api/readiness` distinguishes invalid Resend API credentials, insufficient Resend domain-check permissions, and placeholder email sender domains.
+- A Prometheus-style `/api/metrics` endpoint now exposes request, response, uptime, and memory metrics only when called with the configured bearer `METRICS_TOKEN`.
 - Database backup automation now exists through `pnpm db:backup`; it writes custom-format `pg_dump` files to `BACKUP_DIR`/`backups` without placing `DATABASE_URL` on the child process command line.
 - `pnpm type-check`, `pnpm lint`, `pnpm test`, and `pnpm build` pass locally after the latest changes.
 - Remaining frontend API response casts and raw HTML rendering patterns were removed from the inspected app/package source paths.
@@ -188,10 +189,11 @@ Evidence:
 - Landing builder tests cover tenant-scoped API writes and invalid block rejection; the dashboard builder now uses controls plus preview instead of JSON editing.
 - Student portal pages now expose explicit loading, empty, and retryable error states for course, lesson, and live-session flows.
 - Tenant middleware tests now verify `/api/readiness` is public while tenant-scoped routes still reject missing tenant headers.
+- Metrics tests verify unauthorised probes are rejected and authorised probes return text metrics without requiring a tenant header.
 - Super-admin tests now verify hardened actor revalidation and audit logging for sensitive global operations.
 - Tenant-admin mutation tests now verify audit logging for subject, stage, lesson, landing-page, and tenant-settings changes.
 
 Remaining:
 - Add broader automated tests for auth edge cases, tenant isolation, webhooks, payments, and RLS.
 - Add scheduled production backup execution and retention outside the app runtime.
-- Add observability beyond structured logs and readiness checks.
+- Configure `METRICS_TOKEN` in production and attach a metrics scraper or uptime platform to `/api/metrics`.

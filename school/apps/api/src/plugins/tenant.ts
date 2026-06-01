@@ -6,6 +6,7 @@ import { tenantContext } from "./prisma.js";
 const PUBLIC_PATH_PREFIXES = [
   "/api/health",
   "/api/readiness",
+  "/api/metrics",
   "/api/auth/csrf",
   "/api/auth/register",
   "/api/auth/verify-email",

@@ -33,6 +33,17 @@ describe("tenant plugin public paths", () => {
     assert.deepEqual(response.json(), { success: true });
   });
 
+  it("allows metrics probes without a tenant header", async () => {
+    const app = Fastify();
+    await app.register(tenantPlugin);
+    app.get("/api/metrics", async () => ({ status: "ok" }));
+
+    const response = await app.inject({ method: "GET", url: "/api/metrics" });
+
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual(response.json(), { status: "ok" });
+  });
+
   it("rejects tenant-scoped paths without a tenant header", async () => {
     const app = Fastify();
     await app.register(tenantPlugin);
