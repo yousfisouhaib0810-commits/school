@@ -15,6 +15,7 @@
     "production:smoke": "node scripts/production-smoke.mjs",
     "lint": "turbo lint",
     "render:build": "pnpm install --frozen-lockfile && pnpm build",
+    "render:predeploy": "pnpm --filter @school/database db:deploy",
     "render:start": "pnpm --filter @school/api start",
     "docker:up": "docker compose -f docker/docker-compose.yml up -d",
     "docker:down": "docker compose -f docker/docker-compose.yml down"
