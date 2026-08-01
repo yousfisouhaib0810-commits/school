@@ -1,4 +1,5 @@
 import { getTenantSubdomain } from "@/lib/auth";
+import { getTenantSubdomainFromHostname } from "@/lib/domain";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -83,9 +84,9 @@ export async function apiClient<T>(
 
   const tenantSubdomain =
     requestedTenantSubdomain ??
-    (typeof window !== "undefined" && window.location.hostname.endsWith(".localhost")
-      ? window.location.hostname.split(".")[0]
-      : getTenantSubdomain() ?? "");
+    (typeof window !== "undefined"
+      ? getTenantSubdomainFromHostname(window.location.hostname) ?? getTenantSubdomain() ?? ""
+      : "");
 
   if (tenantSubdomain) {
     headers.set("X-Tenant-Subdomain", tenantSubdomain);

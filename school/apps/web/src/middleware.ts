@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+import { getTenantSubdomainFromHostname } from "@/lib/domain";
+
 const RESERVED_SUBDOMAINS = new Set([
   "admin",
   "api",
@@ -24,19 +26,10 @@ const RESERVED_SUBDOMAINS = new Set([
   "help",
 ]);
 
-function getLocalhostSubdomain(hostname: string): string | null {
-  const [subdomain] = hostname.split(".");
-  if (!hostname.endsWith(".localhost") || !subdomain || subdomain === "localhost") {
-    return null;
-  }
-
-  return subdomain;
-}
-
 export function middleware(request: NextRequest) {
   const host = request.headers.get("host") ?? "";
   const hostname = host.split(":")[0] ?? "";
-  const subdomain = getLocalhostSubdomain(hostname);
+  const subdomain = getTenantSubdomainFromHostname(hostname);
 
   if (!subdomain) {
     return NextResponse.next();

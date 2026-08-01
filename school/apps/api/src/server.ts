@@ -13,6 +13,7 @@ import authPlugin from "./plugins/auth.js";
 import errorHandlerPlugin from "./plugins/error-handler.js";
 import csrfPlugin from "./plugins/csrf.js";
 import metricsPlugin from "./plugins/metrics.js";
+import { isAllowedTenantOrigin } from "./lib/origins.js";
 import authRoutes from "./routes/auth/route.js";
 import tenantRoutes from "./routes/tenant/route.js";
 import videoRoutes from "./routes/video/route.js";
@@ -100,15 +101,7 @@ function configuredOrigins(): Set<string> {
 }
 
 function isAllowedOrigin(origin: string): boolean {
-  try {
-    const { hostname, origin: normalizedOrigin } = new URL(origin);
-    if (env.NODE_ENV !== "production" && (hostname === "localhost" || hostname.endsWith(".localhost"))) {
-      return true;
-    }
-    return configuredOrigins().has(normalizedOrigin);
-  } catch {
-    return false;
-  }
+  return isAllowedTenantOrigin(origin, configuredOrigins(), env.APP_DOMAIN, env.NODE_ENV);
 }
 
 async function checkRedisConnectivity(redisUrl: string): Promise<void> {

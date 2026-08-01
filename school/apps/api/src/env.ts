@@ -7,6 +7,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(4000),
   REDIS_URL: z.string().default("redis://localhost:6379"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  APP_DOMAIN: z.string().optional(),
   ALLOWED_ORIGINS: z.string().optional(),
   CLOUDFLARE_ACCOUNT_ID: z.string().optional(),
   CLOUDFLARE_STREAM_TOKEN: z.string().optional(),

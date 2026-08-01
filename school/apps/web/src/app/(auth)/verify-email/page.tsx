@@ -7,6 +7,7 @@ import type { AuthVerifyEmailResponse } from "@school/shared";
 
 import { apiClient } from "@/lib/api";
 import { clearAccessToken, setTenantSubdomain } from "@/lib/auth";
+import { getTenantDashboardUrl } from "@/lib/domain";
 import { useAuthStore } from "@/lib/store";
 
 function VerifyEmailForm() {
@@ -41,7 +42,13 @@ function VerifyEmailForm() {
     clearAccessToken();
     setTenantSubdomain(data.tenant.subdomain);
     login(data.user);
-    router.push("/");
+    const tenantDashboardUrl = getTenantDashboardUrl(data.tenant.subdomain);
+    if (tenantDashboardUrl) {
+      window.location.assign(tenantDashboardUrl);
+      return;
+    }
+
+    router.push("/dashboard");
   }
 
   async function handleResend() {
